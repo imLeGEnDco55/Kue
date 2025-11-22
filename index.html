@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="es">
-<!-- Kue v0.2 -->
 
 <head>
-    <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8" />
-    <title>Kue v0.2</title>
+    <title>Kue Studio</title>
+    <link rel="manifest" href="manifest.json">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="theme-color" content="#111827">
     <style>
         :root {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -14,12 +14,11 @@
             --bg: #05060a;
             --panel: #111827;
             --accent: #8b5cf6;
-            /* Violeta chido */
-            --accent-glow: rgba(139, 92, 246, 0.4);
+            --accent-hover: #7c3aed;
             --text: #f3f4f6;
             --muted: #9ca3af;
             --danger: #ef4444;
-            --success: #10b981;
+            --card-bg: #1f2937;
         }
 
         * {
@@ -37,48 +36,150 @@
             overflow: hidden;
         }
 
-        /* --- HEADER --- */
+        /* --- VISTAS --- */
+        .view {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: var(--bg);
+            transition: transform 0.3s ease, opacity 0.3s;
+            z-index: 10;
+        }
+
+        .view.hidden {
+            transform: translateX(100%);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Ajuste para cuando la home se oculta (se va a la izquierda) */
+        .view.hidden-left {
+            transform: translateX(-20%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* --- HEADER COMÚN --- */
         header {
             padding: 12px 16px;
             background: var(--panel);
-            border-bottom: 1px solid #1f2937;
+            border-bottom: 1px solid #374151;
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            justify-content: space-between;
+            height: 60px;
             flex-shrink: 0;
-            z-index: 20;
         }
 
-        header h1 {
+        h1 {
             margin: 0;
-            font-size: 0.95rem;
+            font-size: 1.1rem;
             font-weight: 800;
-            letter-spacing: -0.03em;
             background: linear-gradient(to right, #fff, #a78bfa);
             -webkit-background-clip: text;
-            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        /* --- MAIN LAYOUT --- */
-        main {
+        /* --- HOME (DASHBOARD) --- */
+        .project-list {
             flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            position: relative;
+            overflow-y: auto;
+            padding: 16px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 16px;
+            align-content: start;
         }
 
-        /* --- CANVAS WAVEFORM --- */
+        .project-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            aspect-ratio: 1 / 1;
+            border: 1px solid #374151;
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .project-card:active {
+            transform: scale(0.96);
+        }
+
+        .project-card:hover {
+            border-color: var(--accent);
+        }
+
+        .p-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+            line-height: 1.2;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .p-date {
+            font-size: 0.75rem;
+            color: var(--muted);
+        }
+
+        .p-count {
+            font-size: 0.8rem;
+            background: rgba(139, 92, 246, 0.1);
+            color: #c4b5fd;
+            padding: 2px 6px;
+            border-radius: 4px;
+            align-self: start;
+            margin-top: auto;
+        }
+
+        .btn-fab {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 50;
+        }
+
+        .btn-fab:active {
+            transform: scale(0.9);
+        }
+
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: var(--muted);
+            padding-top: 40px;
+        }
+
+        /* --- EDITOR STYLES (Lo que ya tenías) --- */
         .timeline-container {
+            height: 100px;
             background: #0f172a;
-            height: 90px;
-            /* Un pelín más alto para dedos gordos */
             flex-shrink: 0;
             position: relative;
             border-bottom: 1px solid #1e293b;
-            touch-action: none;
-            /* Evita que scrollee la página al tocar aquí */
         }
 
         canvas {
@@ -87,14 +188,10 @@
             display: block;
         }
 
-        /* --- LISTA DE CUES --- */
         .segments-scroller {
             flex: 1;
             overflow-y: auto;
-            padding: 0 0 100px 0;
-            /* Espacio extra abajo para ver el último item */
-            background: var(--bg);
-            scroll-behavior: smooth;
+            padding-bottom: 120px;
         }
 
         .segment-item {
@@ -104,15 +201,12 @@
             padding: 14px 16px;
             border-bottom: 1px solid #1f2937;
             align-items: center;
-            background: var(--bg);
-            transition: all 0.3s ease;
         }
 
         .segment-item.active {
             background: rgba(139, 92, 246, 0.15);
             border-left: 4px solid var(--accent);
             padding-left: 12px;
-            /* Compensar el borde */
         }
 
         .time-badge {
@@ -120,7 +214,7 @@
             font-size: 0.9rem;
             color: #c4b5fd;
             background: rgba(139, 92, 246, 0.1);
-            padding: 6px 8px;
+            padding: 4px 8px;
             border-radius: 6px;
             min-width: 55px;
             text-align: center;
@@ -132,29 +226,18 @@
             border: none;
             color: #fff;
             font-size: 1rem;
-            /* Texto más grande para leer fácil */
             padding: 4px 0;
             outline: none;
-        }
-
-        .segment-note input::placeholder {
-            color: #4b5563;
-            font-style: italic;
         }
 
         .delete-btn {
             background: transparent;
             border: none;
             color: #6b7280;
-            padding: 8px 12px;
             font-size: 1.2rem;
+            padding: 8px;
         }
 
-        .delete-btn:active {
-            color: var(--danger);
-        }
-
-        /* --- CONTROLES (STICKY BOTTOM) --- */
         .controls-area {
             background: rgba(11, 15, 25, 0.98);
             border-top: 1px solid #374151;
@@ -162,94 +245,67 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
             z-index: 30;
             box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
-        }
-
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.8rem;
-            color: var(--muted);
-            margin-bottom: 4px;
-        }
-
-        .time-main {
-            font-family: monospace;
-            color: #fff;
-            font-weight: bold;
-            font-size: 0.9rem;
         }
 
         .action-grid {
             display: grid;
             grid-template-columns: 1fr 2.5fr;
-            /* Más espacio al botón de acción */
             gap: 12px;
         }
 
-        button {
+        .main-btn {
             border: none;
             border-radius: 14px;
             font-weight: 700;
             font-size: 1rem;
             padding: 16px;
+            color: white;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            color: white;
             transition: transform 0.1s;
-            position: relative;
-            overflow: hidden;
         }
 
-        button:active:not(:disabled) {
+        .main-btn:active:not(:disabled) {
             transform: scale(0.97);
         }
 
-        button:disabled {
-            opacity: 0.4;
+        .main-btn:disabled {
+            opacity: 0.5;
             filter: grayscale(1);
-        }
-
-        /* Efecto de brillo al tocar */
-        button::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.1);
-            opacity: 0;
-            transition: opacity 0.1s;
-        }
-
-        button:active::after {
-            opacity: 1;
         }
 
         .btn-play {
             background: #334155;
-            color: #e2e8f0;
         }
 
         .btn-mark {
             background: linear-gradient(135deg, #7c3aed, #db2777);
             box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
-            font-size: 1.1rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
         }
 
         .btn-mark.recording {
             background: linear-gradient(135deg, #dc2626, #991b1b);
-            box-shadow: 0 4px 15px rgba(220, 38, 38, 0.5);
-            animation: pulse-border 2s infinite;
+            animation: pulse 2s infinite;
         }
 
-        @keyframes pulse-border {
+        .back-btn {
+            background: transparent;
+            border: none;
+            color: #e5e7eb;
+            font-size: 1.2rem;
+            padding: 8px;
+            margin-right: 8px;
+        }
+
+        @keyframes pulse {
             0% {
                 box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.6);
             }
@@ -263,262 +319,380 @@
             }
         }
 
-        /* --- MINI TOOLBAR --- */
-        .mini-tools {
-            display: flex;
-            justify-content: space-between;
-            padding-top: 8px;
-            border-top: 1px solid #1f2937;
-        }
-
-        .tool-btn {
-            background: transparent;
-            color: #94a3b8;
-            font-size: 0.75rem;
-            padding: 8px 12px;
-            font-weight: normal;
-        }
-
-        /* --- OVERLAYS --- */
-        .file-overlay {
-            position: absolute;
+        /* Dialogo Modal */
+        .modal {
+            position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(5, 6, 10, 0.9);
-            backdrop-filter: blur(8px);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 50;
-            padding: 30px;
-            text-align: center;
-            transition: opacity 0.3s;
-        }
-
-        .file-overlay.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .overlay-card {
-            background: #1e293b;
-            padding: 24px;
-            border-radius: 20px;
-            border: 1px solid #334155;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-            width: 100%;
-            max-width: 320px;
-        }
-
-        .big-icon {
-            font-size: 3rem;
-            margin-bottom: 16px;
-            display: block;
-        }
-
-        .overlay-btn {
-            background: var(--accent);
-            width: 100%;
-            margin-top: 16px;
-            position: relative;
-        }
-
-        /* Toast */
-        .toast {
-            position: fixed;
-            top: 70px;
-            left: 50%;
-            transform: translateX(-50%) translateY(-20px);
-            background: #374151;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 50px;
-            font-size: 0.85rem;
-            opacity: 0;
-            transition: all 0.3s;
-            pointer-events: none;
             z-index: 100;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
         }
 
-        .toast.show {
-            transform: translateX(-50%) translateY(0);
+        .modal.show {
             opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 320px;
+            border: 1px solid #4b5563;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            margin-top: 16px;
+        }
+
+        .file-input-btn {
+            width: 100%;
+            background: var(--accent);
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .file-input-real {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
         }
     </style>
 </head>
 
 <body>
 
-    <header>
-        <div style="display: flex; flex-direction: column;">
-            <h1>Kúe</h1>
-            <input type="text" id="projectInput" placeholder="Nombre del proyecto..."
-                style="background:transparent; border:none; color:#9ca3af; font-size:0.75rem; outline:none; margin-top:2px;">
-        </div>
-        <!-- Botón pequeño para cambiar archivo si ya está cargado -->
-        <button id="changeFileBtn" class="tool-btn" style="border:1px solid #334155;">📁 Cambiar</button>
-    </header>
+    <div id="viewHome" class="view">
+        <header>
+            <h1>Kue Studio</h1>
+        </header>
 
-    <main>
-        <!-- CANVAS WAVEFORM -->
+        <div class="project-list" id="projectList">
+        </div>
+
+        <button class="btn-fab" id="btnNewProject">+</button>
+    </div>
+
+    <div id="viewEditor" class="view hidden">
+        <header>
+            <div style="display:flex; align-items:center;">
+                <button class="back-btn" id="btnBack">←</button>
+                <div style="display: flex; flex-direction: column;">
+                    <input type="text" id="projectTitleInput" value="Sin Título"
+                        style="background:transparent; border:none; color:white; font-weight:bold; font-size:1rem; outline:none; width: 200px;">
+                </div>
+            </div>
+            <button id="btnSaveManual"
+                style="background:transparent; border:none; color:var(--accent); font-size:1.2rem;">💾</button>
+        </header>
+
         <div class="timeline-container">
             <canvas id="waveCanvas"></canvas>
         </div>
 
-        <!-- LISTA -->
-        <div class="segments-scroller" id="listContainer">
-            <div style="padding: 40px; text-align: center; color: #4b5563; font-size: 0.9rem;">
-                <p>1. Carga la rola.<br>2. Dale al Play.<br>3. Dale al botón Morado para marcar.</p>
+        <div class="segments-scroller" id="listContainer"></div>
+
+        <div class="controls-area">
+            <div
+                style="display:flex; justify-content:space-between; font-size:0.8rem; color:#9ca3af; margin-bottom:4px;">
+                <span id="fileNameDisplay">...</span>
+                <span><span id="currTime">00:00</span> / <span id="totalTime">00:00</span></span>
             </div>
-        </div>
 
-        <!-- OVERLAY DE CARGA / RECARGA -->
-        <div class="file-overlay" id="fileOverlay">
-            <div class="overlay-card">
-                <span class="big-icon">🎵</span>
-                <h3 style="margin:0 0 8px 0; color:white;">Cargar Audio</h3>
-                <p id="overlayMsg" style="margin:0 0 16px 0; color:#94a3b8; font-size:0.9rem; line-height:1.4;">
-                    Selecciona el archivo para empezar.
-                </p>
-                <div style="position:relative; overflow:hidden; border-radius:14px;">
-                    <button class="overlay-btn">Elegir Archivo</button>
-                    <input type="file" id="audioFile" accept="audio/*"
-                        style="position:absolute; left:0; top:0; width:100%; height:100%; opacity:0; cursor:pointer;">
-                </div>
+            <div class="action-grid">
+                <button id="btnPlay" class="main-btn btn-play" disabled>▶</button>
+                <button id="btnMark" class="main-btn btn-mark" disabled>⚡ MARK</button>
             </div>
-        </div>
-    </main>
 
-    <!-- CONTROLES -->
-    <div class="controls-area">
-        <div class="info-row">
-            <span id="fileNameDisplay"
-                style="max-width: 60%; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">---</span>
-            <span class="time-main">
-                <span id="currTime">00:00</span> / <span id="totalTime">00:00</span>
-            </span>
-        </div>
-
-        <div class="action-grid">
-            <button id="btnPlay" class="btn-play" disabled>▶</button>
-            <button id="btnMark" class="btn-mark" disabled>⚡ INICIAR</button>
-        </div>
-
-        <div class="mini-tools">
-            <button class="tool-btn" id="btnUndo" disabled>↩ Deshacer</button>
-            <button class="tool-btn" id="btnClear">🗑 Reset</button>
-            <button class="tool-btn" id="btnExport" style="color:var(--accent);">⬇ JSON</button>
+            <div style="display:flex; gap:12px; margin-top:8px;">
+                <button id="btnUndo"
+                    style="background:transparent; border:1px solid #374151; color:#9ca3af; padding:8px 12px; border-radius:8px; flex:1;">↩
+                    Deshacer</button>
+                <button id="btnDeleteProject"
+                    style="background:transparent; border:1px solid #ef4444; color:#ef4444; padding:8px 12px; border-radius:8px;">🗑
+                    Borrar</button>
+            </div>
         </div>
     </div>
 
-    <div class="toast" id="toast">Mensaje</div>
+    <div class="modal" id="newProjectModal">
+        <div class="modal-card">
+            <h2 style="margin-top:0;">Nuevo Proyecto</h2>
+            <p style="color:var(--muted); font-size:0.9rem;">Ponle nombre y sube el audio para empezar.</p>
+            <input type="text" id="newProjectName" placeholder="Nombre (ej. Ensayo 1)"
+                style="width:100%; padding:10px; background:#111827; border:1px solid #374151; color:white; border-radius:8px; margin-bottom:12px;">
+
+            <div class="file-input-wrapper">
+                <button class="file-input-btn">🎵 Seleccionar Audio</button>
+                <input type="file" id="newAudioFile" class="file-input-real" accept="audio/*">
+            </div>
+
+            <button id="btnCloseModal"
+                style="margin-top:16px; background:transparent; border:none; color:var(--muted); width:100%;">Cancelar</button>
+        </div>
+    </div>
+
     <audio id="audioPlayer" style="display:none;"></audio>
 
     <script>
-        // --- REFERENCIAS ---
-        const audio = document.getElementById('audioPlayer');
-        const canvas = document.getElementById('waveCanvas');
-        const ctx = canvas.getContext('2d');
+        // --- BASE DE DATOS (INDEXED DB) ---
+        // Aquí ocurre la magia de guardar audios pesados
+        const DB_NAME = 'KueStudioDB';
+        const DB_VERSION = 1;
+        let db;
 
-        // UI Elements
-        const fileOverlay = document.getElementById('fileOverlay');
-        const overlayMsg = document.getElementById('overlayMsg');
-        const fileInput = document.getElementById('audioFile');
-        const changeFileBtn = document.getElementById('changeFileBtn');
+        const initDB = () => {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onupgradeneeded = (e) => {
+                    db = e.target.result;
+                    if (!db.objectStoreNames.contains('projects')) {
+                        // Creamos la "tabla" de proyectos. keyPath 'id' es la llave única
+                        db.createObjectStore('projects', { keyPath: 'id' });
+                    }
+                };
+                request.onsuccess = (e) => {
+                    db = e.target.result;
+                    resolve(db);
+                };
+                request.onerror = (e) => reject(e);
+            });
+        };
 
-        const btnPlay = document.getElementById('btnPlay');
-        const btnMark = document.getElementById('btnMark');
-        const btnUndo = document.getElementById('btnUndo');
-        const btnClear = document.getElementById('btnClear');
-        const btnExport = document.getElementById('btnExport');
+        const dbOps = {
+            async save(project) {
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction('projects', 'readwrite');
+                    const store = tx.objectStore('projects');
+                    store.put(project);
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => reject(tx.error);
+                });
+            },
+            async getAll() {
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction('projects', 'readonly');
+                    const store = tx.objectStore('projects');
+                    const req = store.getAll();
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => reject(req.error);
+                });
+            },
+            async get(id) {
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction('projects', 'readonly');
+                    const store = tx.objectStore('projects');
+                    const req = store.get(id);
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => reject(req.error);
+                });
+            },
+            async delete(id) {
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction('projects', 'readwrite');
+                    const store = tx.objectStore('projects');
+                    store.delete(id);
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => reject(tx.error);
+                });
+            }
+        };
 
-        const listContainer = document.getElementById('listContainer');
-        const projectInput = document.getElementById('projectInput');
-        const fileNameDisplay = document.getElementById('fileNameDisplay');
-        const currTimeDisplay = document.getElementById('currTime');
-        const totalTimeDisplay = document.getElementById('totalTime');
-        const toast = document.getElementById('toast');
-
-        // --- ESTADO ---
-        let segments = [];
+        // --- ESTADO GLOBAL ---
+        let currentProject = null; // { id, name, segments, audioBlob, createdAt }
         let recording = false;
         let lastCutTime = 0;
         let duration = 0;
-        let loadedFileName = "";
-        let activeSegmentId = null; // Para el auto-scroll
 
-        const LS_KEY = "cuesheet_v3_data";
-        const MIN_SEGMENT_DURATION = 0.5; // Medio segundo mínimo para evitar dobles toques
+        // --- REFERENCIAS UI ---
+        const viewHome = document.getElementById('viewHome');
+        const viewEditor = document.getElementById('viewEditor');
+        const projectList = document.getElementById('projectList');
+        const btnNewProject = document.getElementById('btnNewProject');
+        const modal = document.getElementById('newProjectModal');
+        const btnCloseModal = document.getElementById('btnCloseModal');
+        const newAudioFile = document.getElementById('newAudioFile');
+        const newProjectName = document.getElementById('newProjectName');
 
-        // --- INICIALIZACIÓN ---
-        function init() {
+        // Editor UI
+        const audio = document.getElementById('audioPlayer');
+        const canvas = document.getElementById('waveCanvas');
+        const ctx = canvas.getContext('2d');
+        const btnBack = document.getElementById('btnBack');
+        const projectTitleInput = document.getElementById('projectTitleInput');
+        const btnPlay = document.getElementById('btnPlay');
+        const btnMark = document.getElementById('btnMark');
+        const listContainer = document.getElementById('listContainer');
+        const currTimeDisplay = document.getElementById('currTime');
+        const totalTimeDisplay = document.getElementById('totalTime');
+        const btnSaveManual = document.getElementById('btnSaveManual');
+        const btnDeleteProject = document.getElementById('btnDeleteProject');
+        const btnUndo = document.getElementById('btnUndo');
+
+        // --- INICIO ---
+        async function initApp() {
             resizeCanvas();
             window.addEventListener('resize', resizeCanvas);
-
-            // Cargar datos guardados
-            const savedData = loadFromStorage();
-
-            if (savedData && savedData.lastAudioName) {
-                // Estamos en modo "Recarga"
-                overlayMsg.innerHTML = `Parece que estabas trabajando en:<br><strong style="color:#fff">${savedData.lastAudioName}</strong><br>Cárgala otra vez para seguirle.`;
-                loadedFileName = savedData.lastAudioName;
-                projectInput.value = savedData.projectName || "";
-                segments = savedData.segments || [];
-                renderList();
-            } else {
-                // Modo limpio
-                overlayMsg.textContent = "Carga tu MP3 o WAV para empezar.";
-            }
-
-            updateUIState();
+            await initDB();
+            loadHome();
             loop();
         }
 
-        // --- AUDIO HANDLERS ---
-        fileInput.addEventListener('change', handleFileSelect);
-        // El botón de header re-abre el input del overlay, pero trucado
-        changeFileBtn.addEventListener('click', () => {
-            fileOverlay.classList.remove('hidden');
-            overlayMsg.textContent = "¿Cambiar de rola? Se reiniciará el audio.";
-        });
+        // --- NAVEGACIÓN ---
+        async function loadHome() {
+            // Limpiar estado
+            if (audio.src) {
+                audio.pause();
+                audio.src = "";
+            }
+            currentProject = null;
 
-        function handleFileSelect(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+            // Mostrar Home
+            viewHome.classList.remove('hidden-left');
+            viewEditor.classList.add('hidden');
 
-            // Si es un archivo diferente al guardado y tenemos datos, advertir? 
-            // (Por simplicidad, asumimos que el usuario sabe lo que hace)
+            // Renderizar lista
+            projectList.innerHTML = '<div style="color:var(--muted);">Cargando...</div>';
+            const projects = await dbOps.getAll();
 
-            const url = URL.createObjectURL(file);
+            projectList.innerHTML = '';
+
+            if (projects.length === 0) {
+                projectList.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No hay rolas guardadas</h3>
+                        <p>Dale al botón + para empezar.</p>
+                    </div>
+                `;
+            } else {
+                // Ordenar por fecha (más nuevo primero)
+                projects.sort((a, b) => b.createdAt - a.createdAt).forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = 'project-card';
+                    const date = new Date(p.createdAt).toLocaleDateString();
+                    card.innerHTML = `
+                        <div>
+                            <div class="p-title">${p.name}</div>
+                            <div class="p-date">${date}</div>
+                        </div>
+                        <div class="p-count">${p.segments.length} cortes</div>
+                    `;
+                    card.onclick = () => openProject(p.id);
+                    projectList.appendChild(card);
+                });
+            }
+        }
+
+        async function openProject(id) {
+            const p = await dbOps.get(id);
+            if (!p) return;
+
+            currentProject = p;
+
+            // Cargar audio desde el Blob guardado
+            const url = URL.createObjectURL(p.audioBlob);
             audio.src = url;
-            audio.load();
 
-            loadedFileName = file.name;
-            fileNameDisplay.textContent = file.name;
+            projectTitleInput.value = p.name;
+            document.getElementById('fileNameDisplay').textContent = "Cargado desde memoria";
 
-            // Ocultar overlay
-            fileOverlay.classList.add('hidden');
+            // Cambiar vista
+            viewHome.classList.add('hidden-left');
+            viewEditor.classList.remove('hidden');
 
+            // Esperar metadata
             audio.onloadedmetadata = () => {
                 duration = audio.duration;
                 totalTimeDisplay.textContent = fmt(duration);
-                updateUIState();
-                saveToStorage();
-            };
-
-            audio.onended = () => {
-                finishRecording(); // Cerrar último bloque automáticamente
-                btnPlay.textContent = "▶";
-                showToast("Fin de la pista");
+                renderSegments();
+                updateControls();
             };
         }
 
-        // --- PLAYBACK ---
-        btnPlay.addEventListener('click', () => {
+        // --- NUEVO PROYECTO ---
+        btnNewProject.onclick = () => {
+            modal.classList.add('show');
+            newProjectName.value = "";
+            newAudioFile.value = "";
+        };
+
+        btnCloseModal.onclick = () => modal.classList.remove('show');
+
+        newAudioFile.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const name = newProjectName.value || file.name.split('.')[0];
+            const id = Date.now().toString(); // ID simple basado en tiempo
+
+            const newProj = {
+                id: id,
+                name: name,
+                createdAt: Date.now(),
+                audioBlob: file, // ¡Aquí guardamos el archivo físico!
+                segments: []
+            };
+
+            // Guardar en DB
+            await dbOps.save(newProj);
+            modal.classList.remove('show');
+
+            // Abrir de inmediato
+            openProject(id);
+        };
+
+        // --- EDITOR LOGIC (Adaptada) ---
+        btnBack.onclick = () => {
+            saveCurrentState(); // Auto-save al salir
+            loadHome();
+        };
+
+        btnSaveManual.onclick = () => {
+            saveCurrentState();
+            // Feedback visual rápido
+            const original = btnSaveManual.textContent;
+            btnSaveManual.textContent = "✅";
+            setTimeout(() => btnSaveManual.textContent = original, 1000);
+        };
+
+        btnDeleteProject.onclick = async () => {
+            if (confirm("¿Seguro que quieres borrar este proyecto y su audio?")) {
+                await dbOps.delete(currentProject.id);
+                loadHome();
+            }
+        };
+
+        projectTitleInput.oninput = (e) => {
+            if (currentProject) currentProject.name = e.target.value;
+        };
+
+        async function saveCurrentState() {
+            if (!currentProject) return;
+            // Actualizamos en DB
+            await dbOps.save(currentProject);
+        }
+
+        // --- PLAYBACK & MARKING (Igual que antes pero usando currentProject) ---
+        btnPlay.onclick = () => {
             if (audio.paused) {
                 audio.play();
                 btnPlay.textContent = "⏸";
@@ -528,119 +702,103 @@
                 btnPlay.textContent = "▶";
                 btnPlay.style.background = "";
             }
-        });
+        };
 
-        // --- MARK / CUE LOGIC (EL NÚCLEO) ---
-        btnMark.addEventListener('click', () => {
+        btnMark.onclick = () => {
+            if (!currentProject) return;
             const now = audio.currentTime;
-            haptic();
+
+            if (navigator.vibrate) navigator.vibrate(40);
 
             if (!recording) {
-                // Empezar
-                startRecording(now);
+                recording = true;
+                lastCutTime = now;
+                btnMark.textContent = "✂ CORTAR";
+                btnMark.classList.add('recording');
+                if (audio.paused) btnPlay.click();
             } else {
-                // Cortar
-                // PROTECCIÓN ANTI-REBOTE (Debounce)
-                if (now - lastCutTime < MIN_SEGMENT_DURATION) {
-                    showToast("¡Muy rápido! Calma ese dedo.");
-                    return;
-                }
+                // Debounce simple
+                if (now - lastCutTime < 0.5) return;
                 cutSegment(now);
             }
-        });
-
-        function startRecording(startTime) {
-            recording = true;
-            lastCutTime = startTime;
-
-            btnMark.textContent = "✂ CORTAR";
-            btnMark.classList.add('recording');
-
-            if (audio.paused) btnPlay.click(); // Auto-play
-        }
+        };
 
         function cutSegment(endTime) {
-            const id = Date.now();
             const newSeg = {
-                id: id,
+                id: Date.now(),
                 start: lastCutTime,
                 end: endTime,
                 note: ""
             };
+            currentProject.segments.push(newSeg);
+            lastCutTime = endTime;
+            renderSegments();
+            saveCurrentState(); // Auto-save en cada corte
 
-            segments.push(newSeg);
-            lastCutTime = endTime; // El final del anterior es el inicio del nuevo
-
-            renderList();
-            saveToStorage();
-            updateUIState();
-
-            // Scroll inmediato al nuevo (aunque el loop también lo hace)
-            scrollToItem(id);
+            // Auto scroll
+            setTimeout(() => {
+                const el = document.getElementById(`seg-${newSeg.id}`);
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
         }
 
-        function finishRecording() {
-            if (!recording) return;
-
-            // Guardar el último pedazo hasta donde se detuvo
-            const now = audio.currentTime;
-            if (now - lastCutTime > MIN_SEGMENT_DURATION) {
-                cutSegment(now);
+        // --- RENDER LISTA SEGMENTOS ---
+        function renderSegments() {
+            listContainer.innerHTML = "";
+            if (!currentProject || currentProject.segments.length === 0) {
+                listContainer.innerHTML = `<div style="padding:40px; text-align:center; color:#4b5563;">Dale play y marca.</div>`;
+                return;
             }
 
-            recording = false;
-            btnMark.textContent = "⚡ INICIAR";
-            btnMark.classList.remove('recording');
-            lastCutTime = 0;
+            // Ordenar visualmente si fuera necesario, pero normalmente es cronológico
+            currentProject.segments.forEach((s, idx) => {
+                const el = document.createElement('div');
+                el.className = 'segment-item';
+                el.id = `seg-${s.id}`;
+                el.innerHTML = `
+                  <div class="time-badge" onclick="audio.currentTime=${s.start}">${fmt(s.start)}</div>
+                  <div class="segment-note">
+                    <input type="text" placeholder="Nota ${idx + 1}..." value="${s.note}" 
+                           oninput="updateNote(${s.id}, this.value)">
+                  </div>
+                  <button class="delete-btn" onclick="deleteSeg(${s.id})">✕</button>
+                `;
+                listContainer.appendChild(el);
+            });
         }
 
-        // --- UNDO ---
-        btnUndo.addEventListener('click', () => {
-            if (segments.length === 0) return;
+        // Helpers globales
+        window.updateNote = (id, val) => {
+            const s = currentProject.segments.find(x => x.id === id);
+            if (s) { s.note = val; saveCurrentState(); } // Guardado silencioso
+        };
+        window.deleteSeg = (id) => {
+            if (!confirm("¿Borrar?")) return;
+            currentProject.segments = currentProject.segments.filter(x => x.id !== id);
+            renderSegments();
+            saveCurrentState();
+        };
 
-            const removed = segments.pop();
-            // Si estábamos grabando, regresamos el tiempo de corte al inicio del borrado
-            if (recording) {
-                lastCutTime = removed.start;
-                // Opcional: regresar el audio también? Mejor no, rompe el flow.
+        btnUndo.onclick = () => {
+            if (currentProject && currentProject.segments.length > 0) {
+                currentProject.segments.pop();
+                renderSegments();
+                saveCurrentState();
             }
+        };
 
-            renderList();
-            saveToStorage();
-            updateUIState();
-            showToast("Deshecho");
-        });
-
-        // --- VISUALS LOOP ---
+        // --- VISUALIZADOR ---
         function loop() {
             requestAnimationFrame(loop);
+            if (!currentProject || !duration) return;
 
-            if (!audio.duration) return;
-
-            // 1. Pintar Canvas
-            drawCanvas();
-
-            // 2. Actualizar Tiempo
-            if (!audio.paused) {
-                currTimeDisplay.textContent = fmt(audio.currentTime);
-
-                // 3. AUTO-SCROLL INTELIGENTE
-                // Detectar en qué segmento estamos
-                const currentSeg = segments.find(s => audio.currentTime >= s.start && audio.currentTime < s.end);
-                if (currentSeg && currentSeg.id !== activeSegmentId) {
-                    activeSegmentId = currentSeg.id;
-                    highlightActiveSegment(activeSegmentId);
-                }
-            }
-        }
-
-        function drawCanvas() {
+            // Draw Canvas
             const w = canvas.width;
             const h = canvas.height;
             ctx.clearRect(0, 0, w, h);
 
-            // Fondo base de bloques
-            segments.forEach(s => {
+            // Bloques guardados
+            currentProject.segments.forEach(s => {
                 const x = (s.start / duration) * w;
                 const bw = ((s.end - s.start) / duration) * w;
                 ctx.fillStyle = "rgba(139, 92, 246, 0.2)";
@@ -649,164 +807,45 @@
                 ctx.strokeRect(x, 0, bw, h);
             });
 
-            // Bloque "Grabando" en vivo
+            // Bloque grabando
             if (recording) {
                 const x = (lastCutTime / duration) * w;
                 const bw = ((audio.currentTime - lastCutTime) / duration) * w;
-                ctx.fillStyle = "rgba(239, 68, 68, 0.25)"; // Rojo
+                ctx.fillStyle = "rgba(239, 68, 68, 0.25)";
                 ctx.fillRect(x, 0, bw, h);
             }
 
-            // Aguja Playhead
+            // Playhead
             const px = (audio.currentTime / duration) * w;
-            ctx.beginPath();
-            ctx.moveTo(px, 0);
-            ctx.lineTo(px, h);
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = "#f43f5e"; // Rose 500
-            ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, h);
+            ctx.lineWidth = 2; ctx.strokeStyle = "#f43f5e"; ctx.stroke();
+
+            // Tiempo UI
+            if (!audio.paused) currTimeDisplay.textContent = fmt(audio.currentTime);
         }
-
-        // Interaction Canvas (Scrubbing)
-        canvas.addEventListener('pointerdown', (e) => {
-            if (!duration) return;
-            const rect = canvas.getBoundingClientRect();
-            const pct = (e.clientX - rect.left) / rect.width;
-            audio.currentTime = pct * duration;
-        });
-
-        // --- LISTA & SCROLL ---
-        function renderList() {
-            if (segments.length === 0) {
-                listContainer.innerHTML = `<div style="padding: 40px; text-align: center; color: #4b5563;">Sin segmentos</div>`;
-                return;
-            }
-
-            // Re-render completo es costoso, en app real usaríamos diffing, pero aquí aguanta.
-            // Truco: solo vaciamos si cambió el length para no perder foco de inputs si fuera el caso,
-            // pero aquí simplificamos.
-            listContainer.innerHTML = "";
-
-            segments.forEach((s, idx) => {
-                const el = document.createElement('div');
-                el.className = 'segment-item';
-                el.id = `seg-${s.id}`;
-
-                // Mark active
-                if (activeSegmentId === s.id) el.classList.add('active');
-
-                el.innerHTML = `
-          <div class="time-badge" onclick="jumpTo(${s.start})">${fmt(s.start)}</div>
-          <div class="segment-note">
-            <input type="text" placeholder="Nota bloque ${idx + 1}..." value="${s.note}" 
-                   oninput="updateNote(${s.id}, this.value)">
-          </div>
-          <button class="delete-btn" onclick="deleteSeg(${s.id})">✕</button>
-        `;
-                listContainer.appendChild(el);
-            });
-        }
-
-        function highlightActiveSegment(id) {
-            // Remover clase active de todos
-            document.querySelectorAll('.segment-item').forEach(el => el.classList.remove('active'));
-            const el = document.getElementById(`seg-${id}`);
-            if (el) {
-                el.classList.add('active');
-                scrollToItem(id);
-            }
-        }
-
-        function scrollToItem(id) {
-            const el = document.getElementById(`seg-${id}`);
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        }
-
-        // Funciones globales para HTML inline
-        window.jumpTo = (t) => { audio.currentTime = t; if (audio.paused) audio.play(); };
-        window.updateNote = (id, val) => {
-            const s = segments.find(x => x.id === id);
-            if (s) { s.note = val; saveToStorage(); }
-        };
-        window.deleteSeg = (id) => {
-            if (!confirm("¿Borrar?")) return;
-            segments = segments.filter(x => x.id !== id);
-            renderList();
-            saveToStorage();
-            updateUIState();
-        };
 
         // --- UTILS ---
-        function updateUIState() {
-            const hasAudio = duration > 0;
-            btnPlay.disabled = !hasAudio;
-            btnMark.disabled = !hasAudio;
-            btnUndo.disabled = segments.length === 0;
-            btnExport.disabled = segments.length === 0;
-        }
-
         function resizeCanvas() {
-            canvas.width = canvas.parentElement.clientWidth;
-            canvas.height = canvas.parentElement.clientHeight;
+            if (canvas.parentElement) {
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = canvas.parentElement.clientHeight;
+            }
         }
-
         function fmt(s) {
             if (!isFinite(s)) return "00:00";
             const m = Math.floor(s / 60);
             const sc = Math.floor(s % 60);
             return `${m}:${sc.toString().padStart(2, '0')}`;
         }
-
-        function haptic() {
-            if (navigator.vibrate) navigator.vibrate(40);
+        function updateControls() {
+            const hasAudio = duration > 0;
+            btnPlay.disabled = !hasAudio;
+            btnMark.disabled = !hasAudio;
         }
 
-        function showToast(msg) {
-            toast.textContent = msg;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 2000);
-        }
+        // Arrancar
+        initApp();
 
-        // Storage
-        function saveToStorage() {
-            const data = {
-                projectName: projectInput.value,
-                segments: segments,
-                lastAudioName: loadedFileName
-            };
-            localStorage.setItem(LS_KEY, JSON.stringify(data));
-        }
-
-        function loadFromStorage() {
-            const raw = localStorage.getItem(LS_KEY);
-            return raw ? JSON.parse(raw) : null;
-        }
-
-        // Buttons toolbar
-        btnClear.addEventListener('click', () => {
-            if (confirm("¿Empezar de cero? Se borrará todo.")) {
-                localStorage.removeItem(LS_KEY);
-                location.reload();
-            }
-        });
-
-        btnExport.addEventListener('click', () => {
-            const data = {
-                project: projectInput.value || "Proyecto",
-                exportedAt: new Date().toISOString(),
-                segments: segments
-            };
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `cues_${Date.now()}.json`;
-            a.click();
-        });
-
-        // Init
-        init();
     </script>
 </body>
 
