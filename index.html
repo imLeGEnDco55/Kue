@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>Kue Studio Pro</title>
+    <title>Kue Studio V7</title>
     <link rel="manifest" href="manifest.json">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <meta name="theme-color" content="#111827">
@@ -21,9 +21,7 @@
             --muted: #9ca3af;
             --danger: #ef4444;
             --card-bg: #1f2937;
-            --glass: rgba(17, 24, 39, 0.95);
-            --wave-color: #4c1d95;
-            /* Color de la onda */
+            --glass: rgba(17, 24, 39, 0.98);
         }
 
         * {
@@ -70,7 +68,7 @@
 
         /* --- HEADER --- */
         header {
-            padding: 12px 16px;
+            padding: 8px 16px;
             background: var(--panel);
             border-bottom: 1px solid #374151;
             display: flex;
@@ -201,9 +199,10 @@
         }
 
         /* --- EDITOR --- */
+        /* El Canvas ahora es más prominente */
         .timeline-container {
-            height: 120px;
-            /* Más alto para ver bien la onda */
+            height: 140px;
+            /* Más espacio visual */
             background: #0f172a;
             flex-shrink: 0;
             position: relative;
@@ -218,7 +217,20 @@
             cursor: crosshair;
         }
 
-        /* Indicador de carga de onda */
+        .bpm-display {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-family: monospace;
+            font-size: 0.75rem;
+            font-weight: bold;
+            background: rgba(0, 0, 0, 0.6);
+            color: #fbbf24;
+            padding: 4px 8px;
+            border-radius: 6px;
+            pointer-events: none;
+        }
+
         .wave-loading {
             position: absolute;
             top: 50%;
@@ -237,23 +249,10 @@
             display: block;
         }
 
-        .bpm-badge {
-            font-family: monospace;
-            font-size: 0.8rem;
-            background: #374151;
-            color: #fbbf24;
-            padding: 4px 8px;
-            border-radius: 4px;
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
         .segments-scroller {
             flex: 1;
             overflow-y: auto;
-            padding-bottom: 180px;
+            padding-bottom: 200px;
             scroll-behavior: smooth;
         }
 
@@ -378,9 +377,16 @@
             letter-spacing: 1px;
         }
 
+        /* Botón cuando estamos grabando activo */
         .btn-mark.recording {
             background: linear-gradient(135deg, #ef4444, #b91c1c);
             animation: pulse 2s infinite;
+        }
+
+        /* Botón cuando estamos pausados pero en medio de un corte (CONTINUAR) */
+        .btn-mark.resume {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            /* Ambar/Naranja */
         }
 
         .toolbar-row {
@@ -530,7 +536,7 @@
     <!-- VISTA: HOME -->
     <div id="viewHome" class="view">
         <header>
-            <h1>Kue Studio</h1>
+            <h1>Kue Studio V7</h1>
         </header>
 
         <div class="project-list" id="projectList">
@@ -550,15 +556,16 @@
                 <input type="text" id="projectTitleInput" value="Sin Título"
                     style="background:transparent; border:none; color:white; font-weight:800; font-size:1.1rem; outline:none; width: 160px;">
             </div>
-            <div class="bpm-badge" id="bpmBadge">
-                <span>⚡</span> <span id="bpmValue">-- BPM</span>
+            <div style="display:flex; gap:8px;">
+                <button id="btnExportJSON" class="icon-btn" title="Exportar JSON">⬇</button>
             </div>
         </header>
 
         <!-- CANVAS INTERACTIVO (WAVEFORM) -->
         <div class="timeline-container">
             <canvas id="waveCanvas"></canvas>
-            <div id="waveLoading" class="wave-loading">Generando onda...</div>
+            <div id="waveLoading" class="wave-loading">Cargando onda...</div>
+            <div class="bpm-display" id="bpmDisplay">-- BPM</div>
         </div>
 
         <!-- LISTA DE CORTES -->
@@ -579,7 +586,7 @@
                     <span>▶</span>
                 </button>
                 <button id="btnMark" class="main-btn btn-mark" disabled>
-                    <span>⚡ MARK</span>
+                    <span>⚡ INICIAR</span>
                 </button>
             </div>
 
@@ -587,8 +594,6 @@
                 <button id="btnUndo" class="tool-btn">↩ Deshacer</button>
                 <button id="btnDeleteProject" class="tool-btn"
                     style="color:#f87171; border-color:rgba(239,68,68,0.3);">🗑 Borrar</button>
-                <button id="btnExportJSON" class="tool-btn"
-                    style="color:var(--accent); border-color:rgba(139,92,246,0.3);">⬇ JSON</button>
             </div>
         </div>
     </div>
@@ -597,7 +602,7 @@
     <div class="modal" id="newProjectModal">
         <div class="modal-card">
             <h2 style="margin-top:0; font-size:1.3rem;">Nuevo Proyecto</h2>
-            <input type="text" id="newProjectName" placeholder="Nombre (Ej. Video Clip #1)"
+            <input type="text" id="newProjectName" placeholder="Nombre (Ej. Clip Final)"
                 style="width:100%; padding:14px; background:#111827; border:1px solid #374151; color:white; border-radius:12px; margin-bottom:12px; outline:none; font-size:1rem;">
             <div class="file-input-wrapper">
                 <button class="file-input-btn">
@@ -656,8 +661,8 @@
 
         // --- ESTADO ---
         let currentProject = null;
-        let recording = false;
-        let lastCutTime = 0;
+        let recording = false; // Indica si estamos en medio de un bloque ABIERTO
+        let activeSegmentStart = null; // Dónde empezó el bloque actual (si recording es true)
         let duration = 0;
         let activeSegmentId = null;
 
@@ -673,8 +678,10 @@
         const canvas = document.getElementById('waveCanvas');
         const ctx = canvas.getContext('2d');
         const toast = document.getElementById('toast');
-        const bpmLabel = document.getElementById('bpmValue');
+        const bpmLabel = document.getElementById('bpmDisplay');
         const waveLoader = document.getElementById('waveLoading');
+        const btnPlay = document.getElementById('btnPlay');
+        const btnMark = document.getElementById('btnMark');
 
         // --- INICIO ---
         async function initApp() {
@@ -688,8 +695,8 @@
         // --- NAVEGACIÓN ---
         async function loadHome() {
             if (audio.src) { audio.pause(); audio.src = ""; }
-            currentProject = null; recording = false;
-            audioBuffer = null; wavePeaks = []; // Reset wave
+            currentProject = null; recording = false; activeSegmentStart = null;
+            audioBuffer = null; wavePeaks = [];
 
             views.home.classList.remove('hidden-left');
             views.editor.classList.add('hidden');
@@ -729,68 +736,65 @@
 
             document.getElementById('projectTitleInput').value = p.name;
             document.getElementById('fileNameDisplay').textContent = p.audioBlob.name;
-            bpmLabel.textContent = p.bpm ? `${p.bpm} BPM` : "-- BPM";
+
+            // Resetear estado de grabación al abrir
+            recording = false;
+            activeSegmentStart = null;
+            updateMarkButtonUI();
 
             views.home.classList.add('hidden-left');
             views.editor.classList.remove('hidden');
+
+            // Verificar si ya tenemos BPM guardado
+            if (p.bpm) bpmLabel.textContent = p.bpm + " BPM";
+            else bpmLabel.textContent = "-- BPM";
 
             audio.onloadedmetadata = () => {
                 duration = audio.duration;
                 document.getElementById('totalTime').textContent = fmt(duration);
                 renderSegments();
                 updateControls();
-                // Iniciar análisis de audio (waveform + bpm)
-                analyzeAudio(p.audioBlob);
+                analyzeAudio(p.audioBlob); // Disparar análisis waveform
             };
+
             audio.onended = () => {
-                document.getElementById('btnPlay').innerHTML = "<span>▶</span>";
-                document.getElementById('btnPlay').style.background = "";
-                if (recording) document.getElementById('btnMark').click();
+                btnPlay.innerHTML = "<span>▶</span>";
+                btnPlay.style.background = "";
+                // Si estaba grabando, pausamos pero no cerramos (opcional), o cerramos.
+                // El usuario pidió continuidad, así que mejor solo pausar UI.
             };
         }
 
-        // --- AUDIO ANALYSIS (Waveform & BPM) ---
+        // --- AUDIO ANALYSIS ---
         async function analyzeAudio(blob) {
             try {
                 waveLoader.classList.add('show');
-
                 if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
                 const arrayBuffer = await blob.arrayBuffer();
                 audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-                // 1. Generar Waveform Data
                 generateWaveform(audioBuffer);
 
-                // 2. Detectar BPM (Si no tenemos uno guardado)
                 if (!currentProject.bpm) {
                     const bpm = detectBPM(audioBuffer);
-                    if (bpm) {
+                    if (bpm > 0) {
                         currentProject.bpm = bpm;
-                        bpmLabel.textContent = `${bpm} BPM`;
+                        bpmLabel.textContent = bpm + " BPM";
                         saveCurrentState();
                     }
                 }
-
                 waveLoader.classList.remove('show');
-
-            } catch (e) {
-                console.error("Error analizando audio:", e);
-                waveLoader.textContent = "Error cargando onda";
-            }
+            } catch (e) { console.error(e); waveLoader.textContent = "Error"; }
         }
 
         function generateWaveform(buffer) {
-            // Simplificación masiva para canvas: tomamos X picos
-            const channelData = buffer.getChannelData(0); // Canal izquierdo
-            const samples = 1000; // Resolución de dibujo
+            const channelData = buffer.getChannelData(0);
+            const samples = 1200; // Más resolución
             const step = Math.ceil(channelData.length / samples);
-            const amp = 1;
-
             wavePeaks = [];
             for (let i = 0; i < samples; i++) {
-                let min = 1.0;
-                let max = -1.0;
+                let min = 1.0, max = -1.0;
                 for (let j = 0; j < step; j++) {
                     const datum = channelData[(i * step) + j];
                     if (datum < min) min = datum;
@@ -800,85 +804,141 @@
             }
         }
 
-        // Algoritmo simple de BPM (Peak detection)
         function detectBPM(buffer) {
+            // Detección simple basada en picos de energía
             try {
-                // Tomamos un fragmento central de 30s para analizar
                 const data = buffer.getChannelData(0);
                 const sampleRate = buffer.sampleRate;
+                // Analizar un trozo de 10 segundos del medio
+                const startSample = Math.floor(data.length / 2) - (sampleRate * 5);
+                const endSample = startSample + (sampleRate * 10);
+                const fragment = data.slice(Math.max(0, startSample), Math.min(data.length, endSample));
 
-                // Identificar picos de volumen (beats)
-                const peaks = getPeaks(data);
-                const intervals = getIntervals(peaks);
-                const top = getTopIntervals(intervals);
+                let peaks = [];
+                const threshold = 0.3;
 
-                if (top.length === 0) return 0;
-
-                // Promedio de los intervalos top
-                const avgInterval = top.reduce((a, b) => a + b.interval, 0) / top.length;
-
-                // Convertir samples a BPM
-                // samples per beat = avgInterval
-                // seconds per beat = avgInterval / sampleRate
-                // beats per second = sampleRate / avgInterval
-                // beats per minute = (sampleRate / avgInterval) * 60
-
-                let bpm = Math.round((sampleRate / avgInterval) * 60);
-
-                // Normalizar rangos comunes (70-180)
-                while (bpm < 70) bpm *= 2;
-                while (bpm > 180) bpm /= 2;
-
-                return Math.round(bpm);
-            } catch (e) {
-                return 0;
-            }
-        }
-
-        function getPeaks(data) {
-            const partSize = 22050; // ~0.5s
-            const parts = data.length / partSize;
-            const peaks = [];
-
-            for (let i = 0; i < parts; i++) {
-                let max = 0;
-                for (let j = i * partSize; j < (i + 1) * partSize; j++) {
-                    const vol = Math.abs(data[j]);
-                    if (vol > max) max = vol;
-                }
-                // Threshold dinámico simple
-                if (max > 0.2) peaks.push(i * partSize); // Guardar índice aproximado
-            }
-            return peaks;
-        }
-
-        function getIntervals(peaks) {
-            const intervals = [];
-            peaks.forEach((peak, index) => {
-                for (let i = 1; i < 10; i++) {
-                    const neighbor = peaks[index + i];
-                    if (!neighbor) break;
-                    const interval = neighbor - peak;
-                    const found = intervals.find(g => Math.abs(g.interval - interval) < 2000); // Tolerancia
-                    if (found) {
-                        found.count++;
-                    } else {
-                        intervals.push({ interval, count: 1 });
+                for (let i = 0; i < fragment.length; i++) {
+                    if (fragment[i] > threshold) {
+                        // Debounce simple de 0.2s
+                        if (peaks.length === 0 || (i - peaks[peaks.length - 1]) > (sampleRate * 0.25)) {
+                            peaks.push(i);
+                        }
                     }
                 }
-            });
-            return intervals;
+                if (peaks.length < 2) return 0;
+
+                // Calcular distancia promedio entre picos
+                let totalDist = 0;
+                for (let i = 0; i < peaks.length - 1; i++) {
+                    totalDist += (peaks[i + 1] - peaks[i]);
+                }
+                const avgDist = totalDist / (peaks.length - 1);
+                const bpm = Math.round(60 / (avgDist / sampleRate));
+
+                // Ajustar a rango normal
+                let finalBpm = bpm;
+                while (finalBpm < 70) finalBpm *= 2;
+                while (finalBpm > 170) finalBpm /= 2;
+
+                return Math.round(finalBpm);
+            } catch (e) { return 0; }
         }
 
-        function getTopIntervals(intervals) {
-            return intervals.sort((a, b) => b.count - a.count).slice(0, 5);
+        // --- LOGICA DE CORTE CORREGIDA ---
+
+        // 1. Play/Pause
+        btnPlay.onclick = () => {
+            if (audio.paused) {
+                audio.play();
+                btnPlay.innerHTML = "<span>⏸</span>";
+                btnPlay.style.background = "#475569";
+            } else {
+                audio.pause();
+                btnPlay.innerHTML = "<span>▶</span>";
+                btnPlay.style.background = "";
+            }
+        };
+
+        // 2. Mark Logic (The Core Fix)
+        btnMark.onclick = () => {
+            if (!currentProject) return;
+            const now = audio.currentTime;
+            if (navigator.vibrate) navigator.vibrate(40);
+
+            // CASO A: NO ESTAMOS GRABANDO NADA -> ABRIR NUEVO BLOQUE
+            if (!recording) {
+                startSegment(now);
+                if (audio.paused) btnPlay.click(); // Auto-play si está quieto
+            }
+            // CASO B: ESTAMOS GRABANDO -> CERRAR BLOQUE ACTUAL
+            else {
+                // Validar que no sea un micro-toque accidental (< 0.1s)
+                if (now - activeSegmentStart < 0.1) return;
+
+                finishSegment(now);
+                // Inmediatamente abrimos el siguiente (Comportamiento "Cadena")
+                // startSegment(now); // <-- SI QUIERES CORTES SEGUIDOS DESCOMENTA ESTO
+                // PERO si prefieres Play/Stop estilo clásico:
+                startSegment(now); // Lo dejamos encadenado por defecto para videoclips
+            }
+        };
+
+        function startSegment(startTime) {
+            recording = true;
+            activeSegmentStart = startTime;
+            updateMarkButtonUI();
         }
 
-        // --- MODALES ---
+        function finishSegment(endTime) {
+            const newSeg = {
+                id: Date.now(),
+                start: activeSegmentStart,
+                end: endTime,
+                note: ""
+            };
+
+            // Aquí estaba el bug: antes revisábamos si "chocaba".
+            // Ahora somos permisivos: simplemente lo agregamos y ordenamos después.
+            currentProject.segments.push(newSeg);
+
+            // Resetear inicio para el siguiente (encadenado)
+            activeSegmentStart = endTime;
+
+            renderSegments();
+            saveCurrentState();
+
+            // Scroll al nuevo item
+            setTimeout(() => {
+                const el = document.getElementById(`seg-${newSeg.id}`);
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 50);
+        }
+
+        // Función para actualizar la cara del botón Mark según el estado
+        function updateMarkButtonUI() {
+            if (recording) {
+                btnMark.innerHTML = "<span>✂ CORTAR</span>";
+                btnMark.className = "main-btn btn-mark recording";
+
+                // Si pausamos el audio, cambiamos el botón a "CONTINUAR"
+                if (audio.paused) {
+                    btnMark.innerHTML = "<span>▶ CONTINUAR</span>";
+                    btnMark.className = "main-btn btn-mark resume";
+                }
+            } else {
+                btnMark.innerHTML = "<span>⚡ INICIAR</span>";
+                btnMark.className = "main-btn btn-mark";
+            }
+        }
+
+        // Escuchar pausa/play para actualizar el botón si estamos a medio corte
+        audio.onpause = () => updateMarkButtonUI();
+        audio.onplay = () => updateMarkButtonUI();
+
+        // --- UTILIDADES UI ---
         document.getElementById('btnNewProject').onclick = () => modals.new.classList.add('show');
         document.getElementById('btnCloseModal').onclick = () => modals.new.classList.remove('show');
 
-        // --- CREAR PROYECTO ---
         document.getElementById('newAudioFile').onchange = async (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -889,10 +949,8 @@
             openProject(id);
         };
 
-        // --- EDITOR CONTROLS ---
-        document.getElementById('btnBack').onclick = () => {
-            saveCurrentState(); loadHome();
-        };
+        document.getElementById('btnBack').onclick = () => { saveCurrentState(); loadHome(); };
+        document.getElementById('btnDeleteProject').onclick = async () => { if (confirm("¿Borrar?")) { await dbOps.delete(currentProject.id); loadHome(); } };
 
         document.getElementById('btnExportJSON').onclick = () => {
             if (!currentProject) return;
@@ -906,86 +964,41 @@
             a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
             a.download = `${currentProject.name}_kue.json`;
             a.click();
-            showToastMsg("JSON descargado");
+            showToastMsg("JSON listo");
         };
-
-        document.getElementById('projectTitleInput').onblur = (e) => {
-            if (currentProject) { currentProject.name = e.target.value; saveCurrentState(); }
-        };
-
-        async function saveCurrentState() { if (currentProject) await dbOps.save(currentProject); }
-        function showToastMsg(msg) {
-            toast.textContent = msg; toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 2000);
-        }
-
-        // Play/Mark logic
-        const btnPlay = document.getElementById('btnPlay');
-        const btnMark = document.getElementById('btnMark');
-
-        btnPlay.onclick = () => {
-            if (audio.paused) {
-                audio.play();
-                btnPlay.innerHTML = "<span>⏸</span>"; btnPlay.style.background = "#475569";
-            } else {
-                audio.pause();
-                btnPlay.innerHTML = "<span>▶</span>"; btnPlay.style.background = "";
-            }
-        };
-
-        btnMark.onclick = () => {
-            if (!currentProject) return;
-            const now = audio.currentTime;
-            if (navigator.vibrate) navigator.vibrate(50);
-
-            if (!recording) {
-                recording = true; lastCutTime = now;
-                btnMark.innerHTML = "<span>✂ CORTAR</span>"; btnMark.classList.add('recording');
-                if (audio.paused) btnPlay.click();
-            } else {
-                if (now - lastCutTime < 0.2) return; // Anti-rebote rápido
-                cutSegment(now);
-            }
-        };
-
-        function cutSegment(end) {
-            const newSeg = { id: Date.now(), start: lastCutTime, end: end, note: "" };
-            currentProject.segments.push(newSeg);
-            lastCutTime = end;
-            renderSegments(); saveCurrentState();
-            setTimeout(() => {
-                const el = document.getElementById(`seg-${newSeg.id}`);
-                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 50);
-        }
 
         document.getElementById('btnUndo').onclick = () => {
             if (currentProject?.segments.length > 0) {
                 const rem = currentProject.segments.pop();
-                if (recording) { lastCutTime = rem.start; audio.currentTime = rem.start; }
+                // Si estamos grabando, regresamos el "inicio" del corte actual al inicio del que borramos
+                if (recording) {
+                    activeSegmentStart = rem.start;
+                    audio.currentTime = rem.start; // Rebobinar para corregir
+                }
                 renderSegments(); saveCurrentState(); showToastMsg("Deshecho");
             }
         };
 
-        document.getElementById('btnDeleteProject').onclick = async () => {
-            if (confirm("¿Borrar rola?")) { await dbOps.delete(currentProject.id); loadHome(); }
-        };
+        async function saveCurrentState() { if (currentProject) await dbOps.save(currentProject); }
+        function showToastMsg(msg) { toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2000); }
 
-        // Render Logic
+        // RENDER LISTA
         const listContainer = document.getElementById('listContainer');
         function renderSegments() {
             listContainer.innerHTML = "";
             if (!currentProject || currentProject.segments.length === 0) {
-                listContainer.innerHTML = `<div style="padding:40px; text-align:center; color:#4b5563;">1. Dale Play ▶<br>2. MARK ⚡<br>3. CORTAR ✂</div>`;
+                listContainer.innerHTML = `<div style="padding:40px; text-align:center; color:#4b5563;">Aún no hay cortes.</div>`;
                 return;
             }
+            // Ordenar cronológicamente para que la lista tenga sentido visual
             currentProject.segments.sort((a, b) => a.start - b.start);
+
             currentProject.segments.forEach((s, idx) => {
                 const el = document.createElement('div');
                 el.className = 'segment-item'; el.id = `seg-${s.id}`;
                 el.innerHTML = `
                   <div class="time-badge" onclick="jumpTo(${s.start})">${fmt(s.start)}</div>
-                  <div class="segment-note"><input type="text" placeholder="Bloque ${idx + 1}..." value="${s.note}" onchange="updateNote(${s.id}, this.value)"></div>
+                  <div class="segment-note"><input type="text" placeholder="Corte ${idx + 1}..." value="${s.note}" onchange="updateNote(${s.id}, this.value)"></div>
                   <button class="delete-btn" onclick="deleteSeg(${s.id})">✕</button>`;
                 listContainer.appendChild(el);
             });
@@ -995,50 +1008,42 @@
         window.updateNote = (id, v) => { const s = currentProject.segments.find(x => x.id === id); if (s) { s.note = v; saveCurrentState(); } };
         window.deleteSeg = (id) => { if (confirm("¿Borrar?")) { currentProject.segments = currentProject.segments.filter(x => x.id !== id); renderSegments(); saveCurrentState(); } };
 
-        // --- LOOP VISUAL (CANVAS MASTER) ---
+        // --- LOOP VISUAL (CANVAS) ---
         function loop() {
             requestAnimationFrame(loop);
             if (!currentProject || !duration) return;
             const w = canvas.width; const h = canvas.height;
             ctx.clearRect(0, 0, w, h);
 
-            // 1. DIBUJAR WAVEFORM (Si existe)
+            // 1. WAVEFORM
             if (wavePeaks.length > 0) {
-                ctx.fillStyle = "rgba(76, 29, 149, 0.5)"; // Color onda
+                ctx.fillStyle = "rgba(139, 92, 246, 0.2)"; // Morado suave
                 ctx.beginPath();
-
                 const widthScale = w / wavePeaks.length;
-
-                // Dibujar mitad superior
                 ctx.moveTo(0, h / 2);
-                wavePeaks.forEach((peak, i) => {
-                    ctx.lineTo(i * widthScale, (h / 2) + (peak.min * h / 2));
-                });
-
-                // Dibujar mitad inferior (reflejada)
-                for (let i = wavePeaks.length - 1; i >= 0; i--) {
-                    ctx.lineTo(i * widthScale, (h / 2) + (wavePeaks[i].max * h / 2));
-                }
-
+                wavePeaks.forEach((p, i) => ctx.lineTo(i * widthScale, (h / 2) + (p.min * h / 2)));
+                for (let i = wavePeaks.length - 1; i >= 0; i--) ctx.lineTo(i * widthScale, (h / 2) + (wavePeaks[i].max * h / 2));
                 ctx.fill();
             }
 
-            // 2. Bloques ya cortados (Overlay Morado)
-            ctx.fillStyle = "rgba(139, 92, 246, 0.25)";
-            ctx.strokeStyle = "rgba(139, 92, 246, 0.6)";
-
+            // 2. SEGMENTOS
+            ctx.fillStyle = "rgba(139, 92, 246, 0.3)";
             currentProject.segments.forEach(s => {
                 const x = (s.start / duration) * w; const bw = ((s.end - s.start) / duration) * w;
-                ctx.fillRect(x, 0, bw, h); ctx.strokeRect(x, 0, bw, h);
+                ctx.fillRect(x, 0, bw, h);
+                ctx.strokeStyle = "rgba(139, 92, 246, 0.8)"; ctx.strokeRect(x, 0, bw, h);
             });
 
-            // 3. Bloque grabando (Overlay Rojo)
-            if (recording) {
-                const x = (lastCutTime / duration) * w; const bw = ((audio.currentTime - lastCutTime) / duration) * w;
-                ctx.fillStyle = "rgba(239, 68, 68, 0.3)"; ctx.fillRect(x, 0, bw, h);
+            // 3. RECORDING GHOST SEGMENT
+            if (recording && activeSegmentStart !== null) {
+                const x = (activeSegmentStart / duration) * w;
+                const bw = ((audio.currentTime - activeSegmentStart) / duration) * w;
+                ctx.fillStyle = "rgba(239, 68, 68, 0.4)"; // Rojo
+                ctx.fillRect(x, 0, bw, h);
+                ctx.strokeStyle = "#ef4444"; ctx.strokeRect(x, 0, bw, h);
             }
 
-            // 4. Playhead (Aguja)
+            // 4. PLAYHEAD
             const px = (audio.currentTime / duration) * w;
             ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, h);
             ctx.lineWidth = 2; ctx.strokeStyle = "#f472b6"; ctx.stroke();
@@ -1064,7 +1069,7 @@
 
         function resizeCanvas() { if (canvas.parentElement) { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; } }
         function fmt(s) { if (!isFinite(s)) return "00:00"; const m = Math.floor(s / 60), sc = Math.floor(s % 60); return `${m}:${sc.toString().padStart(2, '0')}`; }
-        function updateControls() { const on = duration > 0; document.getElementById('btnPlay').disabled = !on; document.getElementById('btnMark').disabled = !on; }
+        function updateControls() { const on = duration > 0; btnPlay.disabled = !on; btnMark.disabled = !on; }
 
         initApp();
     </script>
