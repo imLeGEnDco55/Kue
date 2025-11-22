@@ -3,10 +3,12 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>Kue Studio</title>
+    <title>Kue Studio Pro</title>
     <link rel="manifest" href="manifest.json">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <meta name="theme-color" content="#111827">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
     <style>
         :root {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -19,6 +21,9 @@
             --muted: #9ca3af;
             --danger: #ef4444;
             --card-bg: #1f2937;
+            --glass: rgba(17, 24, 39, 0.95);
+            --wave-color: #4c1d95;
+            /* Color de la onda */
         }
 
         * {
@@ -46,7 +51,7 @@
             top: 0;
             left: 0;
             background: var(--bg);
-            transition: transform 0.3s ease, opacity 0.3s;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s;
             z-index: 10;
         }
 
@@ -57,14 +62,13 @@
             z-index: 0;
         }
 
-        /* Ajuste para cuando la home se oculta (se va a la izquierda) */
         .view.hidden-left {
-            transform: translateX(-20%);
+            transform: translateX(-30%);
             opacity: 0;
             pointer-events: none;
         }
 
-        /* --- HEADER COMÚN --- */
+        /* --- HEADER --- */
         header {
             padding: 12px 16px;
             background: var(--panel);
@@ -74,32 +78,33 @@
             justify-content: space-between;
             height: 60px;
             flex-shrink: 0;
+            z-index: 20;
         }
 
         h1 {
             margin: 0;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             font-weight: 800;
+            letter-spacing: -0.02em;
             background: linear-gradient(to right, #fff, #a78bfa);
-            background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        /* --- HOME (DASHBOARD) --- */
+        /* --- HOME --- */
         .project-list {
             flex: 1;
             overflow-y: auto;
             padding: 16px;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
             gap: 16px;
             align-content: start;
         }
 
         .project-card {
             background: var(--card-bg);
-            border-radius: 12px;
+            border-radius: 16px;
             padding: 16px;
             display: flex;
             flex-direction: column;
@@ -108,24 +113,34 @@
             border: 1px solid #374151;
             cursor: pointer;
             position: relative;
-            transition: transform 0.2s, border-color 0.2s;
+            overflow: hidden;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
         }
 
         .project-card:active {
             transform: scale(0.96);
         }
 
-        .project-card:hover {
-            border-color: var(--accent);
+        .project-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--accent);
+            opacity: 0.7;
         }
 
         .p-title {
-            font-weight: bold;
-            margin-bottom: 4px;
-            line-height: 1.2;
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 6px;
+            line-height: 1.3;
+            color: #fff;
             overflow: hidden;
             display: -webkit-box;
-            line-clamp: 2;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
         }
@@ -133,80 +148,127 @@
         .p-date {
             font-size: 0.75rem;
             color: var(--muted);
+            margin-bottom: 4px;
         }
 
         .p-count {
-            font-size: 0.8rem;
-            background: rgba(139, 92, 246, 0.1);
-            color: #c4b5fd;
-            padding: 2px 6px;
-            border-radius: 4px;
-            align-self: start;
-            margin-top: auto;
+            font-size: 0.75rem;
+            background: rgba(139, 92, 246, 0.15);
+            color: #ddd6fe;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 600;
         }
 
         .btn-fab {
             position: absolute;
             bottom: 24px;
             right: 24px;
-            width: 56px;
-            height: 56px;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
-            background: var(--accent);
+            background: linear-gradient(135deg, var(--accent), #ec4899);
             color: white;
             border: none;
-            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4);
             font-size: 2rem;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             z-index: 50;
+            transition: transform 0.2s;
         }
 
         .btn-fab:active {
-            transform: scale(0.9);
+            transform: scale(0.9) rotate(90deg);
         }
 
         .empty-state {
             grid-column: 1 / -1;
             text-align: center;
             color: var(--muted);
-            padding-top: 40px;
+            padding-top: 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
         }
 
-        /* --- EDITOR STYLES (Lo que ya tenías) --- */
+        .empty-icon {
+            font-size: 3rem;
+            opacity: 0.5;
+        }
+
+        /* --- EDITOR --- */
         .timeline-container {
-            height: 100px;
+            height: 120px;
+            /* Más alto para ver bien la onda */
             background: #0f172a;
             flex-shrink: 0;
             position: relative;
             border-bottom: 1px solid #1e293b;
+            touch-action: none;
         }
 
         canvas {
             width: 100%;
             height: 100%;
             display: block;
+            cursor: crosshair;
+        }
+
+        /* Indicador de carga de onda */
+        .wave-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.8rem;
+            color: var(--accent);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 4px 12px;
+            border-radius: 12px;
+            pointer-events: none;
+            display: none;
+        }
+
+        .wave-loading.show {
+            display: block;
+        }
+
+        .bpm-badge {
+            font-family: monospace;
+            font-size: 0.8rem;
+            background: #374151;
+            color: #fbbf24;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .segments-scroller {
             flex: 1;
             overflow-y: auto;
-            padding-bottom: 120px;
+            padding-bottom: 180px;
+            scroll-behavior: smooth;
         }
 
         .segment-item {
             display: grid;
             grid-template-columns: auto 1fr auto;
             gap: 12px;
-            padding: 14px 16px;
+            padding: 16px 16px;
             border-bottom: 1px solid #1f2937;
             align-items: center;
+            transition: background 0.2s;
         }
 
         .segment-item.active {
-            background: rgba(139, 92, 246, 0.15);
+            background: rgba(139, 92, 246, 0.1);
             border-left: 4px solid var(--accent);
             padding-left: 12px;
         }
@@ -215,11 +277,12 @@
             font-family: monospace;
             font-size: 0.9rem;
             color: #c4b5fd;
-            background: rgba(139, 92, 246, 0.1);
-            padding: 4px 8px;
-            border-radius: 6px;
-            min-width: 55px;
+            background: rgba(139, 92, 246, 0.15);
+            padding: 6px 10px;
+            border-radius: 8px;
+            min-width: 60px;
             text-align: center;
+            font-weight: bold;
         }
 
         .segment-note input {
@@ -227,23 +290,31 @@
             background: transparent;
             border: none;
             color: #fff;
-            font-size: 1rem;
+            font-size: 1.05rem;
             padding: 4px 0;
             outline: none;
+        }
+
+        .segment-note input::placeholder {
+            color: #4b5563;
+            font-style: italic;
         }
 
         .delete-btn {
             background: transparent;
             border: none;
             color: #6b7280;
-            font-size: 1.2rem;
-            padding: 8px;
+            font-size: 1.3rem;
+            padding: 10px;
+            border-radius: 8px;
         }
 
+        /* --- CONTROLES --- */
         .controls-area {
-            background: rgba(11, 15, 25, 0.98);
+            background: var(--glass);
+            backdrop-filter: blur(12px);
             border-top: 1px solid #374151;
-            padding: 12px 16px 20px;
+            padding: 12px 16px 24px;
             display: flex;
             flex-direction: column;
             gap: 12px;
@@ -252,31 +323,42 @@
             left: 0;
             right: 0;
             z-index: 30;
-            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            color: #9ca3af;
+            margin-bottom: 2px;
         }
 
         .action-grid {
             display: grid;
-            grid-template-columns: 1fr 2.5fr;
+            grid-template-columns: 1fr 2.2fr;
             gap: 12px;
         }
 
         .main-btn {
             border: none;
-            border-radius: 14px;
+            border-radius: 16px;
             font-weight: 700;
-            font-size: 1rem;
-            padding: 16px;
+            font-size: 1.1rem;
+            padding: 18px;
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            transition: transform 0.1s;
+            gap: 10px;
+            transition: transform 0.1s, filter 0.2s;
+            position: relative;
+            overflow: hidden;
         }
 
         .main-btn:active:not(:disabled) {
-            transform: scale(0.97);
+            transform: scale(0.96);
         }
 
         .main-btn:disabled {
@@ -286,50 +368,66 @@
 
         .btn-play {
             background: #334155;
+            color: #f1f5f9;
         }
 
         .btn-mark {
             background: linear-gradient(135deg, #7c3aed, #db2777);
-            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.3);
+            font-size: 1.2rem;
+            letter-spacing: 1px;
         }
 
         .btn-mark.recording {
-            background: linear-gradient(135deg, #dc2626, #991b1b);
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
             animation: pulse 2s infinite;
         }
 
-        .back-btn {
+        .toolbar-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 4px;
+        }
+
+        .tool-btn {
+            flex: 1;
             background: transparent;
-            border: none;
-            color: #e5e7eb;
-            font-size: 1.2rem;
-            padding: 8px;
-            margin-right: 8px;
+            border: 1px solid #374151;
+            color: #9ca3af;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .tool-btn:active {
+            background: #1f2937;
+            color: #fff;
         }
 
         @keyframes pulse {
             0% {
-                box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.6);
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6);
             }
 
             70% {
-                box-shadow: 0 0 0 6px rgba(220, 38, 38, 0);
+                box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
             }
 
             100% {
-                box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
             }
         }
 
-        /* Dialogo Modal */
+        /* --- MODALS --- */
         .modal {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(4px);
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(5px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -347,10 +445,12 @@
         .modal-card {
             background: var(--card-bg);
             padding: 24px;
-            border-radius: 16px;
-            width: 90%;
-            max-width: 320px;
+            border-radius: 20px;
+            width: 85%;
+            max-width: 340px;
             border: 1px solid #4b5563;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            position: relative;
         }
 
         .file-input-wrapper {
@@ -363,10 +463,15 @@
             width: 100%;
             background: var(--accent);
             border: none;
-            padding: 12px;
-            border-radius: 8px;
+            padding: 14px;
+            border-radius: 12px;
             color: white;
             font-weight: bold;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         .file-input-real {
@@ -378,177 +483,198 @@
             opacity: 0;
             cursor: pointer;
         }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 130px;
+            /* Arriba de controles */
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #10b981;
+            color: #064e3b;
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            color: #9ca3af;
+            font-size: 1.3rem;
+            padding: 8px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .icon-btn:hover {
+            color: #fff;
+        }
     </style>
 </head>
 
 <body>
 
+    <!-- VISTA: HOME -->
     <div id="viewHome" class="view">
         <header>
             <h1>Kue Studio</h1>
         </header>
 
         <div class="project-list" id="projectList">
+            <!-- JS inyecta aquí -->
         </div>
 
-        <button class="btn-fab" id="btnNewProject">+</button>
+        <button class="btn-fab" id="btnNewProject">
+            <span style="margin-top: -4px;">+</span>
+        </button>
     </div>
 
+    <!-- VISTA: EDITOR -->
     <div id="viewEditor" class="view hidden">
         <header>
-            <div style="display:flex; align-items:center;">
-                <button class="back-btn" id="btnBack">←</button>
-                <div style="display: flex; flex-direction: column;">
-                    <input type="text" id="projectTitleInput" value="Sin Título"
-                        style="background:transparent; border:none; color:white; font-weight:bold; font-size:1rem; outline:none; width: 200px;">
-                </div>
+            <div style="display:flex; align-items:center; gap: 4px;">
+                <button id="btnBack" class="icon-btn">←</button>
+                <input type="text" id="projectTitleInput" value="Sin Título"
+                    style="background:transparent; border:none; color:white; font-weight:800; font-size:1.1rem; outline:none; width: 160px;">
             </div>
-            <button id="btnSaveManual"
-                style="background:transparent; border:none; color:var(--accent); font-size:1.2rem;">💾</button>
+            <div class="bpm-badge" id="bpmBadge">
+                <span>⚡</span> <span id="bpmValue">-- BPM</span>
+            </div>
         </header>
 
+        <!-- CANVAS INTERACTIVO (WAVEFORM) -->
         <div class="timeline-container">
             <canvas id="waveCanvas"></canvas>
+            <div id="waveLoading" class="wave-loading">Generando onda...</div>
         </div>
 
+        <!-- LISTA DE CORTES -->
         <div class="segments-scroller" id="listContainer"></div>
 
+        <!-- CONTROLES -->
         <div class="controls-area">
-            <div
-                style="display:flex; justify-content:space-between; font-size:0.8rem; color:#9ca3af; margin-bottom:4px;">
-                <span id="fileNameDisplay">...</span>
-                <span><span id="currTime">00:00</span> / <span id="totalTime">00:00</span></span>
+            <div class="info-row">
+                <span id="fileNameDisplay"
+                    style="max-width: 50%; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; opacity:0.7;">...</span>
+                <span style="font-family:monospace; font-weight:bold; color:#fff;">
+                    <span id="currTime">00:00</span> / <span id="totalTime">00:00</span>
+                </span>
             </div>
 
             <div class="action-grid">
-                <button id="btnPlay" class="main-btn btn-play" disabled>▶</button>
-                <button id="btnMark" class="main-btn btn-mark" disabled>⚡ MARK</button>
+                <button id="btnPlay" class="main-btn btn-play" disabled>
+                    <span>▶</span>
+                </button>
+                <button id="btnMark" class="main-btn btn-mark" disabled>
+                    <span>⚡ MARK</span>
+                </button>
             </div>
 
-            <div style="display:flex; gap:12px; margin-top:8px;">
-                <button id="btnUndo"
-                    style="background:transparent; border:1px solid #374151; color:#9ca3af; padding:8px 12px; border-radius:8px; flex:1;">↩
-                    Deshacer</button>
-                <button id="btnDeleteProject"
-                    style="background:transparent; border:1px solid #ef4444; color:#ef4444; padding:8px 12px; border-radius:8px;">🗑
-                    Borrar</button>
+            <div class="toolbar-row">
+                <button id="btnUndo" class="tool-btn">↩ Deshacer</button>
+                <button id="btnDeleteProject" class="tool-btn"
+                    style="color:#f87171; border-color:rgba(239,68,68,0.3);">🗑 Borrar</button>
+                <button id="btnExportJSON" class="tool-btn"
+                    style="color:var(--accent); border-color:rgba(139,92,246,0.3);">⬇ JSON</button>
             </div>
         </div>
     </div>
 
+    <!-- MODAL CREAR -->
     <div class="modal" id="newProjectModal">
         <div class="modal-card">
-            <h2 style="margin-top:0;">Nuevo Proyecto</h2>
-            <p style="color:var(--muted); font-size:0.9rem;">Ponle nombre y sube el audio para empezar.</p>
-            <input type="text" id="newProjectName" placeholder="Nombre (ej. Ensayo 1)"
-                style="width:100%; padding:10px; background:#111827; border:1px solid #374151; color:white; border-radius:8px; margin-bottom:12px;">
-
+            <h2 style="margin-top:0; font-size:1.3rem;">Nuevo Proyecto</h2>
+            <input type="text" id="newProjectName" placeholder="Nombre (Ej. Video Clip #1)"
+                style="width:100%; padding:14px; background:#111827; border:1px solid #374151; color:white; border-radius:12px; margin-bottom:12px; outline:none; font-size:1rem;">
             <div class="file-input-wrapper">
-                <button class="file-input-btn">🎵 Seleccionar Audio</button>
+                <button class="file-input-btn">
+                    <span>🎵</span> Seleccionar Audio
+                </button>
                 <input type="file" id="newAudioFile" class="file-input-real" accept="audio/*">
             </div>
-
             <button id="btnCloseModal"
-                style="margin-top:16px; background:transparent; border:none; color:var(--muted); width:100%;">Cancelar</button>
+                style="margin-top:16px; background:transparent; border:none; color:#9ca3af; width:100%; padding:12px;">Cancelar</button>
         </div>
     </div>
+
+    <!-- TOAST -->
+    <div id="toast" class="toast">¡Guardado!</div>
 
     <audio id="audioPlayer" style="display:none;"></audio>
 
     <script>
-        // --- BASE DE DATOS (INDEXED DB) ---
-        // Aquí ocurre la magia de guardar audios pesados
+        // --- BASE DE DATOS ---
         const DB_NAME = 'KueStudioDB';
         const DB_VERSION = 1;
         let db;
 
-        const initDB = () => {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, DB_VERSION);
-                request.onupgradeneeded = (e) => {
-                    db = e.target.result;
-                    if (!db.objectStoreNames.contains('projects')) {
-                        // Creamos la "tabla" de proyectos. keyPath 'id' es la llave única
-                        db.createObjectStore('projects', { keyPath: 'id' });
-                    }
-                };
-                request.onsuccess = (e) => {
-                    db = e.target.result;
-                    resolve(db);
-                };
-                request.onerror = (e) => reject(e);
-            });
-        };
+        const initDB = () => new Promise((resolve, reject) => {
+            const req = indexedDB.open(DB_NAME, DB_VERSION);
+            req.onupgradeneeded = (e) => {
+                db = e.target.result;
+                if (!db.objectStoreNames.contains('projects')) db.createObjectStore('projects', { keyPath: 'id' });
+            };
+            req.onsuccess = (e) => { db = e.target.result; resolve(db); };
+            req.onerror = (e) => reject(e);
+        });
 
         const dbOps = {
-            async save(project) {
-                return new Promise((resolve, reject) => {
-                    const tx = db.transaction('projects', 'readwrite');
-                    const store = tx.objectStore('projects');
-                    store.put(project);
-                    tx.oncomplete = () => resolve();
-                    tx.onerror = () => reject(tx.error);
-                });
-            },
-            async getAll() {
-                return new Promise((resolve, reject) => {
-                    const tx = db.transaction('projects', 'readonly');
-                    const store = tx.objectStore('projects');
-                    const req = store.getAll();
-                    req.onsuccess = () => resolve(req.result);
-                    req.onerror = () => reject(req.error);
-                });
-            },
-            async get(id) {
-                return new Promise((resolve, reject) => {
-                    const tx = db.transaction('projects', 'readonly');
-                    const store = tx.objectStore('projects');
-                    const req = store.get(id);
-                    req.onsuccess = () => resolve(req.result);
-                    req.onerror = () => reject(req.error);
-                });
-            },
-            async delete(id) {
-                return new Promise((resolve, reject) => {
-                    const tx = db.transaction('projects', 'readwrite');
-                    const store = tx.objectStore('projects');
-                    store.delete(id);
-                    tx.oncomplete = () => resolve();
-                    tx.onerror = () => reject(tx.error);
-                });
-            }
+            save: (p) => new Promise((res, rej) => {
+                const tx = db.transaction('projects', 'readwrite');
+                tx.objectStore('projects').put(p);
+                tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error);
+            }),
+            getAll: () => new Promise((res, rej) => {
+                const tx = db.transaction('projects', 'readonly');
+                const req = tx.objectStore('projects').getAll();
+                req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error);
+            }),
+            get: (id) => new Promise((res, rej) => {
+                const tx = db.transaction('projects', 'readonly');
+                const req = tx.objectStore('projects').get(id);
+                req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error);
+            }),
+            delete: (id) => new Promise((res, rej) => {
+                const tx = db.transaction('projects', 'readwrite');
+                tx.objectStore('projects').delete(id);
+                tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error);
+            })
         };
 
-        // --- ESTADO GLOBAL ---
-        let currentProject = null; // { id, name, segments, audioBlob, createdAt }
+        // --- ESTADO ---
+        let currentProject = null;
         let recording = false;
         let lastCutTime = 0;
         let duration = 0;
+        let activeSegmentId = null;
 
-        // --- REFERENCIAS UI ---
-        const viewHome = document.getElementById('viewHome');
-        const viewEditor = document.getElementById('viewEditor');
-        const projectList = document.getElementById('projectList');
-        const btnNewProject = document.getElementById('btnNewProject');
-        const modal = document.getElementById('newProjectModal');
-        const btnCloseModal = document.getElementById('btnCloseModal');
-        const newAudioFile = document.getElementById('newAudioFile');
-        const newProjectName = document.getElementById('newProjectName');
+        // Waveform & Audio Context Vars
+        let audioContext = null;
+        let audioBuffer = null;
+        let wavePeaks = [];
 
-        // Editor UI
+        // --- UI REFS ---
+        const views = { home: document.getElementById('viewHome'), editor: document.getElementById('viewEditor') };
+        const modals = { new: document.getElementById('newProjectModal') };
         const audio = document.getElementById('audioPlayer');
         const canvas = document.getElementById('waveCanvas');
         const ctx = canvas.getContext('2d');
-        const btnBack = document.getElementById('btnBack');
-        const projectTitleInput = document.getElementById('projectTitleInput');
-        const btnPlay = document.getElementById('btnPlay');
-        const btnMark = document.getElementById('btnMark');
-        const listContainer = document.getElementById('listContainer');
-        const currTimeDisplay = document.getElementById('currTime');
-        const totalTimeDisplay = document.getElementById('totalTime');
-        const btnSaveManual = document.getElementById('btnSaveManual');
-        const btnDeleteProject = document.getElementById('btnDeleteProject');
-        const btnUndo = document.getElementById('btnUndo');
+        const toast = document.getElementById('toast');
+        const bpmLabel = document.getElementById('bpmValue');
+        const waveLoader = document.getElementById('waveLoading');
 
         // --- INICIO ---
         async function initApp() {
@@ -561,45 +687,36 @@
 
         // --- NAVEGACIÓN ---
         async function loadHome() {
-            // Limpiar estado
-            if (audio.src) {
-                audio.pause();
-                audio.src = "";
-            }
-            currentProject = null;
+            if (audio.src) { audio.pause(); audio.src = ""; }
+            currentProject = null; recording = false;
+            audioBuffer = null; wavePeaks = []; // Reset wave
 
-            // Mostrar Home
-            viewHome.classList.remove('hidden-left');
-            viewEditor.classList.add('hidden');
+            views.home.classList.remove('hidden-left');
+            views.editor.classList.add('hidden');
+            renderProjectList();
+        }
 
-            // Renderizar lista
-            projectList.innerHTML = '<div style="color:var(--muted);">Cargando...</div>';
+        async function renderProjectList() {
+            const list = document.getElementById('projectList');
+            list.innerHTML = '<div style="color:var(--muted); text-align:center; padding:20px;">Cargando...</div>';
             const projects = await dbOps.getAll();
-
-            projectList.innerHTML = '';
+            list.innerHTML = '';
 
             if (projects.length === 0) {
-                projectList.innerHTML = `
+                list.innerHTML = `
                     <div class="empty-state">
-                        <h3>No hay rolas guardadas</h3>
-                        <p>Dale al botón + para empezar.</p>
-                    </div>
-                `;
+                        <div class="empty-icon">💿</div>
+                        <div><h3 style="margin:0;">Sin rolas</h3><p style="font-size:0.9rem;">Dale al + para subir tu música.</p></div>
+                    </div>`;
             } else {
-                // Ordenar por fecha (más nuevo primero)
                 projects.sort((a, b) => b.createdAt - a.createdAt).forEach(p => {
                     const card = document.createElement('div');
                     card.className = 'project-card';
-                    const date = new Date(p.createdAt).toLocaleDateString();
                     card.innerHTML = `
-                        <div>
-                            <div class="p-title">${p.name}</div>
-                            <div class="p-date">${date}</div>
-                        </div>
-                        <div class="p-count">${p.segments.length} cortes</div>
-                    `;
+                        <div><div class="p-title">${p.name}</div><div class="p-date">${new Date(p.createdAt).toLocaleDateString()}</div></div>
+                        <div class="p-meta"><span class="p-count">${p.segments.length} cortes</span></div>`;
                     card.onclick = () => openProject(p.id);
-                    projectList.appendChild(card);
+                    list.appendChild(card);
                 });
             }
         }
@@ -607,247 +724,349 @@
         async function openProject(id) {
             const p = await dbOps.get(id);
             if (!p) return;
-
             currentProject = p;
+            audio.src = URL.createObjectURL(p.audioBlob);
 
-            // Cargar audio desde el Blob guardado
-            const url = URL.createObjectURL(p.audioBlob);
-            audio.src = url;
+            document.getElementById('projectTitleInput').value = p.name;
+            document.getElementById('fileNameDisplay').textContent = p.audioBlob.name;
+            bpmLabel.textContent = p.bpm ? `${p.bpm} BPM` : "-- BPM";
 
-            projectTitleInput.value = p.name;
-            document.getElementById('fileNameDisplay').textContent = "Cargado desde memoria";
+            views.home.classList.add('hidden-left');
+            views.editor.classList.remove('hidden');
 
-            // Cambiar vista
-            viewHome.classList.add('hidden-left');
-            viewEditor.classList.remove('hidden');
-
-            // Esperar metadata
             audio.onloadedmetadata = () => {
                 duration = audio.duration;
-                totalTimeDisplay.textContent = fmt(duration);
+                document.getElementById('totalTime').textContent = fmt(duration);
                 renderSegments();
                 updateControls();
+                // Iniciar análisis de audio (waveform + bpm)
+                analyzeAudio(p.audioBlob);
+            };
+            audio.onended = () => {
+                document.getElementById('btnPlay').innerHTML = "<span>▶</span>";
+                document.getElementById('btnPlay').style.background = "";
+                if (recording) document.getElementById('btnMark').click();
             };
         }
 
-        // --- NUEVO PROYECTO ---
-        btnNewProject.onclick = () => {
-            modal.classList.add('show');
-            newProjectName.value = "";
-            newAudioFile.value = "";
-        };
+        // --- AUDIO ANALYSIS (Waveform & BPM) ---
+        async function analyzeAudio(blob) {
+            try {
+                waveLoader.classList.add('show');
 
-        btnCloseModal.onclick = () => modal.classList.remove('show');
+                if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-        newAudioFile.onchange = async (e) => {
+                const arrayBuffer = await blob.arrayBuffer();
+                audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+                // 1. Generar Waveform Data
+                generateWaveform(audioBuffer);
+
+                // 2. Detectar BPM (Si no tenemos uno guardado)
+                if (!currentProject.bpm) {
+                    const bpm = detectBPM(audioBuffer);
+                    if (bpm) {
+                        currentProject.bpm = bpm;
+                        bpmLabel.textContent = `${bpm} BPM`;
+                        saveCurrentState();
+                    }
+                }
+
+                waveLoader.classList.remove('show');
+
+            } catch (e) {
+                console.error("Error analizando audio:", e);
+                waveLoader.textContent = "Error cargando onda";
+            }
+        }
+
+        function generateWaveform(buffer) {
+            // Simplificación masiva para canvas: tomamos X picos
+            const channelData = buffer.getChannelData(0); // Canal izquierdo
+            const samples = 1000; // Resolución de dibujo
+            const step = Math.ceil(channelData.length / samples);
+            const amp = 1;
+
+            wavePeaks = [];
+            for (let i = 0; i < samples; i++) {
+                let min = 1.0;
+                let max = -1.0;
+                for (let j = 0; j < step; j++) {
+                    const datum = channelData[(i * step) + j];
+                    if (datum < min) min = datum;
+                    if (datum > max) max = datum;
+                }
+                wavePeaks.push({ min, max });
+            }
+        }
+
+        // Algoritmo simple de BPM (Peak detection)
+        function detectBPM(buffer) {
+            try {
+                // Tomamos un fragmento central de 30s para analizar
+                const data = buffer.getChannelData(0);
+                const sampleRate = buffer.sampleRate;
+
+                // Identificar picos de volumen (beats)
+                const peaks = getPeaks(data);
+                const intervals = getIntervals(peaks);
+                const top = getTopIntervals(intervals);
+
+                if (top.length === 0) return 0;
+
+                // Promedio de los intervalos top
+                const avgInterval = top.reduce((a, b) => a + b.interval, 0) / top.length;
+
+                // Convertir samples a BPM
+                // samples per beat = avgInterval
+                // seconds per beat = avgInterval / sampleRate
+                // beats per second = sampleRate / avgInterval
+                // beats per minute = (sampleRate / avgInterval) * 60
+
+                let bpm = Math.round((sampleRate / avgInterval) * 60);
+
+                // Normalizar rangos comunes (70-180)
+                while (bpm < 70) bpm *= 2;
+                while (bpm > 180) bpm /= 2;
+
+                return Math.round(bpm);
+            } catch (e) {
+                return 0;
+            }
+        }
+
+        function getPeaks(data) {
+            const partSize = 22050; // ~0.5s
+            const parts = data.length / partSize;
+            const peaks = [];
+
+            for (let i = 0; i < parts; i++) {
+                let max = 0;
+                for (let j = i * partSize; j < (i + 1) * partSize; j++) {
+                    const vol = Math.abs(data[j]);
+                    if (vol > max) max = vol;
+                }
+                // Threshold dinámico simple
+                if (max > 0.2) peaks.push(i * partSize); // Guardar índice aproximado
+            }
+            return peaks;
+        }
+
+        function getIntervals(peaks) {
+            const intervals = [];
+            peaks.forEach((peak, index) => {
+                for (let i = 1; i < 10; i++) {
+                    const neighbor = peaks[index + i];
+                    if (!neighbor) break;
+                    const interval = neighbor - peak;
+                    const found = intervals.find(g => Math.abs(g.interval - interval) < 2000); // Tolerancia
+                    if (found) {
+                        found.count++;
+                    } else {
+                        intervals.push({ interval, count: 1 });
+                    }
+                }
+            });
+            return intervals;
+        }
+
+        function getTopIntervals(intervals) {
+            return intervals.sort((a, b) => b.count - a.count).slice(0, 5);
+        }
+
+        // --- MODALES ---
+        document.getElementById('btnNewProject').onclick = () => modals.new.classList.add('show');
+        document.getElementById('btnCloseModal').onclick = () => modals.new.classList.remove('show');
+
+        // --- CREAR PROYECTO ---
+        document.getElementById('newAudioFile').onchange = async (e) => {
             const file = e.target.files[0];
             if (!file) return;
-
-            const name = newProjectName.value || file.name.split('.')[0];
-            const id = Date.now().toString(); // ID simple basado en tiempo
-
-            const newProj = {
-                id: id,
-                name: name,
-                createdAt: Date.now(),
-                audioBlob: file, // ¡Aquí guardamos el archivo físico!
-                segments: []
-            };
-
-            // Guardar en DB
-            await dbOps.save(newProj);
-            modal.classList.remove('show');
-
-            // Abrir de inmediato
+            const name = document.getElementById('newProjectName').value.trim() || file.name.split('.')[0];
+            const id = Date.now().toString();
+            await dbOps.save({ id, name, createdAt: Date.now(), audioBlob: file, segments: [] });
+            modals.new.classList.remove('show');
             openProject(id);
         };
 
-        // --- EDITOR LOGIC (Adaptada) ---
-        btnBack.onclick = () => {
-            saveCurrentState(); // Auto-save al salir
-            loadHome();
+        // --- EDITOR CONTROLS ---
+        document.getElementById('btnBack').onclick = () => {
+            saveCurrentState(); loadHome();
         };
 
-        btnSaveManual.onclick = () => {
-            saveCurrentState();
-            // Feedback visual rápido
-            const original = btnSaveManual.textContent;
-            btnSaveManual.textContent = "✅";
-            setTimeout(() => btnSaveManual.textContent = original, 1000);
-        };
-
-        btnDeleteProject.onclick = async () => {
-            if (confirm("¿Seguro que quieres borrar este proyecto y su audio?")) {
-                await dbOps.delete(currentProject.id);
-                loadHome();
-            }
-        };
-
-        projectTitleInput.oninput = (e) => {
-            if (currentProject) currentProject.name = e.target.value;
-        };
-
-        async function saveCurrentState() {
+        document.getElementById('btnExportJSON').onclick = () => {
             if (!currentProject) return;
-            // Actualizamos en DB
-            await dbOps.save(currentProject);
+            const data = {
+                name: currentProject.name,
+                bpm: currentProject.bpm || 0,
+                source: currentProject.audioBlob.name,
+                segments: currentProject.segments
+            };
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+            a.download = `${currentProject.name}_kue.json`;
+            a.click();
+            showToastMsg("JSON descargado");
+        };
+
+        document.getElementById('projectTitleInput').onblur = (e) => {
+            if (currentProject) { currentProject.name = e.target.value; saveCurrentState(); }
+        };
+
+        async function saveCurrentState() { if (currentProject) await dbOps.save(currentProject); }
+        function showToastMsg(msg) {
+            toast.textContent = msg; toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
         }
 
-        // --- PLAYBACK & MARKING (Igual que antes pero usando currentProject) ---
+        // Play/Mark logic
+        const btnPlay = document.getElementById('btnPlay');
+        const btnMark = document.getElementById('btnMark');
+
         btnPlay.onclick = () => {
             if (audio.paused) {
                 audio.play();
-                btnPlay.textContent = "⏸";
-                btnPlay.style.background = "#475569";
+                btnPlay.innerHTML = "<span>⏸</span>"; btnPlay.style.background = "#475569";
             } else {
                 audio.pause();
-                btnPlay.textContent = "▶";
-                btnPlay.style.background = "";
+                btnPlay.innerHTML = "<span>▶</span>"; btnPlay.style.background = "";
             }
         };
 
         btnMark.onclick = () => {
             if (!currentProject) return;
             const now = audio.currentTime;
-
-            if (navigator.vibrate) navigator.vibrate(40);
+            if (navigator.vibrate) navigator.vibrate(50);
 
             if (!recording) {
-                recording = true;
-                lastCutTime = now;
-                btnMark.textContent = "✂ CORTAR";
-                btnMark.classList.add('recording');
+                recording = true; lastCutTime = now;
+                btnMark.innerHTML = "<span>✂ CORTAR</span>"; btnMark.classList.add('recording');
                 if (audio.paused) btnPlay.click();
             } else {
-                // Debounce simple
-                if (now - lastCutTime < 0.5) return;
+                if (now - lastCutTime < 0.2) return; // Anti-rebote rápido
                 cutSegment(now);
             }
         };
 
-        function cutSegment(endTime) {
-            const newSeg = {
-                id: Date.now(),
-                start: lastCutTime,
-                end: endTime,
-                note: ""
-            };
+        function cutSegment(end) {
+            const newSeg = { id: Date.now(), start: lastCutTime, end: end, note: "" };
             currentProject.segments.push(newSeg);
-            lastCutTime = endTime;
-            renderSegments();
-            saveCurrentState(); // Auto-save en cada corte
-
-            // Auto scroll
+            lastCutTime = end;
+            renderSegments(); saveCurrentState();
             setTimeout(() => {
                 const el = document.getElementById(`seg-${newSeg.id}`);
                 if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 100);
+            }, 50);
         }
 
-        // --- RENDER LISTA SEGMENTOS ---
+        document.getElementById('btnUndo').onclick = () => {
+            if (currentProject?.segments.length > 0) {
+                const rem = currentProject.segments.pop();
+                if (recording) { lastCutTime = rem.start; audio.currentTime = rem.start; }
+                renderSegments(); saveCurrentState(); showToastMsg("Deshecho");
+            }
+        };
+
+        document.getElementById('btnDeleteProject').onclick = async () => {
+            if (confirm("¿Borrar rola?")) { await dbOps.delete(currentProject.id); loadHome(); }
+        };
+
+        // Render Logic
+        const listContainer = document.getElementById('listContainer');
         function renderSegments() {
             listContainer.innerHTML = "";
             if (!currentProject || currentProject.segments.length === 0) {
-                listContainer.innerHTML = `<div style="padding:40px; text-align:center; color:#4b5563;">Dale play y marca.</div>`;
+                listContainer.innerHTML = `<div style="padding:40px; text-align:center; color:#4b5563;">1. Dale Play ▶<br>2. MARK ⚡<br>3. CORTAR ✂</div>`;
                 return;
             }
-
-            // Ordenar visualmente si fuera necesario, pero normalmente es cronológico
+            currentProject.segments.sort((a, b) => a.start - b.start);
             currentProject.segments.forEach((s, idx) => {
                 const el = document.createElement('div');
-                el.className = 'segment-item';
-                el.id = `seg-${s.id}`;
+                el.className = 'segment-item'; el.id = `seg-${s.id}`;
                 el.innerHTML = `
-                  <div class="time-badge" onclick="audio.currentTime=${s.start}">${fmt(s.start)}</div>
-                  <div class="segment-note">
-                    <input type="text" placeholder="Nota ${idx + 1}..." value="${s.note}" 
-                           oninput="updateNote(${s.id}, this.value)">
-                  </div>
-                  <button class="delete-btn" onclick="deleteSeg(${s.id})">✕</button>
-                `;
+                  <div class="time-badge" onclick="jumpTo(${s.start})">${fmt(s.start)}</div>
+                  <div class="segment-note"><input type="text" placeholder="Bloque ${idx + 1}..." value="${s.note}" onchange="updateNote(${s.id}, this.value)"></div>
+                  <button class="delete-btn" onclick="deleteSeg(${s.id})">✕</button>`;
                 listContainer.appendChild(el);
             });
         }
 
-        // Helpers globales
-        window.updateNote = (id, val) => {
-            const s = currentProject.segments.find(x => x.id === id);
-            if (s) { s.note = val; saveCurrentState(); } // Guardado silencioso
-        };
-        window.deleteSeg = (id) => {
-            if (!confirm("¿Borrar?")) return;
-            currentProject.segments = currentProject.segments.filter(x => x.id !== id);
-            renderSegments();
-            saveCurrentState();
-        };
+        window.jumpTo = (t) => { audio.currentTime = t; if (audio.paused) audio.play(); };
+        window.updateNote = (id, v) => { const s = currentProject.segments.find(x => x.id === id); if (s) { s.note = v; saveCurrentState(); } };
+        window.deleteSeg = (id) => { if (confirm("¿Borrar?")) { currentProject.segments = currentProject.segments.filter(x => x.id !== id); renderSegments(); saveCurrentState(); } };
 
-        btnUndo.onclick = () => {
-            if (currentProject && currentProject.segments.length > 0) {
-                currentProject.segments.pop();
-                renderSegments();
-                saveCurrentState();
-            }
-        };
-
-        // --- VISUALIZADOR ---
+        // --- LOOP VISUAL (CANVAS MASTER) ---
         function loop() {
             requestAnimationFrame(loop);
             if (!currentProject || !duration) return;
-
-            // Draw Canvas
-            const w = canvas.width;
-            const h = canvas.height;
+            const w = canvas.width; const h = canvas.height;
             ctx.clearRect(0, 0, w, h);
 
-            // Bloques guardados
+            // 1. DIBUJAR WAVEFORM (Si existe)
+            if (wavePeaks.length > 0) {
+                ctx.fillStyle = "rgba(76, 29, 149, 0.5)"; // Color onda
+                ctx.beginPath();
+
+                const widthScale = w / wavePeaks.length;
+
+                // Dibujar mitad superior
+                ctx.moveTo(0, h / 2);
+                wavePeaks.forEach((peak, i) => {
+                    ctx.lineTo(i * widthScale, (h / 2) + (peak.min * h / 2));
+                });
+
+                // Dibujar mitad inferior (reflejada)
+                for (let i = wavePeaks.length - 1; i >= 0; i--) {
+                    ctx.lineTo(i * widthScale, (h / 2) + (wavePeaks[i].max * h / 2));
+                }
+
+                ctx.fill();
+            }
+
+            // 2. Bloques ya cortados (Overlay Morado)
+            ctx.fillStyle = "rgba(139, 92, 246, 0.25)";
+            ctx.strokeStyle = "rgba(139, 92, 246, 0.6)";
+
             currentProject.segments.forEach(s => {
-                const x = (s.start / duration) * w;
-                const bw = ((s.end - s.start) / duration) * w;
-                ctx.fillStyle = "rgba(139, 92, 246, 0.2)";
-                ctx.fillRect(x, 0, bw, h);
-                ctx.strokeStyle = "rgba(139, 92, 246, 0.4)";
-                ctx.strokeRect(x, 0, bw, h);
+                const x = (s.start / duration) * w; const bw = ((s.end - s.start) / duration) * w;
+                ctx.fillRect(x, 0, bw, h); ctx.strokeRect(x, 0, bw, h);
             });
 
-            // Bloque grabando
+            // 3. Bloque grabando (Overlay Rojo)
             if (recording) {
-                const x = (lastCutTime / duration) * w;
-                const bw = ((audio.currentTime - lastCutTime) / duration) * w;
-                ctx.fillStyle = "rgba(239, 68, 68, 0.25)";
-                ctx.fillRect(x, 0, bw, h);
+                const x = (lastCutTime / duration) * w; const bw = ((audio.currentTime - lastCutTime) / duration) * w;
+                ctx.fillStyle = "rgba(239, 68, 68, 0.3)"; ctx.fillRect(x, 0, bw, h);
             }
 
-            // Playhead
+            // 4. Playhead (Aguja)
             const px = (audio.currentTime / duration) * w;
             ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, h);
-            ctx.lineWidth = 2; ctx.strokeStyle = "#f43f5e"; ctx.stroke();
+            ctx.lineWidth = 2; ctx.strokeStyle = "#f472b6"; ctx.stroke();
 
-            // Tiempo UI
-            if (!audio.paused) currTimeDisplay.textContent = fmt(audio.currentTime);
-        }
-
-        // --- UTILS ---
-        function resizeCanvas() {
-            if (canvas.parentElement) {
-                canvas.width = canvas.parentElement.clientWidth;
-                canvas.height = canvas.parentElement.clientHeight;
+            // UI Updates
+            if (!audio.paused) {
+                document.getElementById('currTime').textContent = fmt(audio.currentTime);
+                const active = currentProject.segments.find(s => audio.currentTime >= s.start && audio.currentTime < s.end);
+                if (active && activeSegmentId !== active.id) {
+                    activeSegmentId = active.id;
+                    document.querySelectorAll('.segment-item').forEach(el => el.classList.remove('active'));
+                    const el = document.getElementById(`seg-${active.id}`);
+                    if (el) { el.classList.add('active'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+                }
             }
         }
-        function fmt(s) {
-            if (!isFinite(s)) return "00:00";
-            const m = Math.floor(s / 60);
-            const sc = Math.floor(s % 60);
-            return `${m}:${sc.toString().padStart(2, '0')}`;
-        }
-        function updateControls() {
-            const hasAudio = duration > 0;
-            btnPlay.disabled = !hasAudio;
-            btnMark.disabled = !hasAudio;
-        }
 
-        // Arrancar
+        canvas.addEventListener('pointerdown', (e) => {
+            if (!duration) return;
+            const rect = canvas.getBoundingClientRect();
+            audio.currentTime = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * duration;
+        });
+
+        function resizeCanvas() { if (canvas.parentElement) { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; } }
+        function fmt(s) { if (!isFinite(s)) return "00:00"; const m = Math.floor(s / 60), sc = Math.floor(s % 60); return `${m}:${sc.toString().padStart(2, '0')}`; }
+        function updateControls() { const on = duration > 0; document.getElementById('btnPlay').disabled = !on; document.getElementById('btnMark').disabled = !on; }
+
         initApp();
-
     </script>
 </body>
 
