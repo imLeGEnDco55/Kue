@@ -53,11 +53,102 @@
             z-index: 10;
         }
 
-        .view.hidden {
-            transform: translateX(100%);
+        /* --- EDITOR LAYOUT UPGRADE --- */
+        .timeline-wrapper {
+            height: 140px;
+            background: #0f172a;
+            position: relative;
+            overflow-x: auto;
+            /* Enable Horizontal Scroll */
+            overflow-y: hidden;
+            display: flex;
+            align-items: flex-start;
+            border-bottom: 1px solid #1e293b;
+        }
+
+        /* The invisible spacer that creates the scroll width */
+        #timelineSpacer {
+            height: 1px;
+            flex-shrink: 0;
             opacity: 0;
+        }
+
+        /* The canvas sticks to the view */
+        canvas#waveCanvas {
+            position: sticky;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 100%;
+            /* Dynamically resized by JS to match viewport, but sticky */
+            display: block;
+        }
+
+        .playhead {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #f472b6;
+            z-index: 5;
             pointer-events: none;
-            z-index: 0;
+            will-change: transform;
+        }
+
+        .bpm-tag {
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #fbbf24;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        /* NOTES MODAL */
+        .notes-area {
+            width: 100%;
+            height: 150px;
+            background: #111827;
+            border: 1px solid #374151;
+            color: #fff;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: sans-serif;
+            resize: none;
+            font-size: 1rem;
+        }
+
+        /* MEDIA PIP */
+        .media-pip {
+            position: fixed;
+            top: 60px;
+            right: 16px;
+            width: 180px;
+            aspect-ratio: 16/9;
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+            z-index: 80;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s;
+        }
+
+        .media-pip.hidden {
+            transform: translateX(200%);
+            display: none;
+        }
+
+        .close-pip {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
         }
 
         .view.hidden-left {
@@ -561,41 +652,38 @@
             </div>
         </header>
 
-        <!-- CANVAS INTERACTIVO (WAVEFORM) -->
-        <div class="timeline-container">
-            <canvas id="waveCanvas"></canvas>
-            <div id="waveLoading" class="wave-loading">Cargando onda...</div>
-            <div class="bpm-display" id="bpmDisplay">-- BPM</div>
+        <div id="timelineSpacer"></div>
+    </div>
+    <!-- Old lists removed, new lists inserted -->
+    </div>
+
+    <!-- LISTA DE CORTES -->
+    <div class="segments-scroller" id="listContainer"></div>
+
+    <!-- CONTROLES -->
+    <div class="controls-area">
+        <div class="info-row">
+            <span id="fileNameDisplay" style="max-width: 50%; opacity:0.7;">...</span>
+            <span style="font-family:monospace; font-weight:bold; color:#fff;">
+                <span id="currTime">00:00</span> / <span id="totalTime">00:00</span>
+            </span>
         </div>
 
-        <!-- LISTA DE CORTES -->
-        <div class="segments-scroller" id="listContainer"></div>
-
-        <!-- CONTROLES -->
-        <div class="controls-area">
-            <div class="info-row">
-                <span id="fileNameDisplay"
-                    style="max-width: 50%; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; opacity:0.7;">...</span>
-                <span style="font-family:monospace; font-weight:bold; color:#fff;">
-                    <span id="currTime">00:00</span> / <span id="totalTime">00:00</span>
-                </span>
-            </div>
-
-            <div class="action-grid">
-                <button id="btnPlay" class="main-btn btn-play" disabled>
-                    <span>▶</span>
-                </button>
-                <button id="btnMark" class="main-btn btn-mark" disabled>
-                    <span>⚡ INICIAR</span>
-                </button>
-            </div>
-
-            <div class="toolbar-row">
-                <button id="btnUndo" class="tool-btn">↩ Deshacer</button>
-                <button id="btnDeleteProject" class="tool-btn"
-                    style="color:#f87171; border-color:rgba(239,68,68,0.3);">🗑 Borrar</button>
-            </div>
+        <div class="action-grid">
+            <button id="btnPlay" class="main-btn btn-play" disabled>
+                <span>▶</span>
+            </button>
+            <button id="btnMark" class="main-btn btn-mark" disabled>
+                <span>⚡ INICIAR</span>
+            </button>
         </div>
+
+        <div class="toolbar-row">
+            <button id="btnUndo" class="tool-btn">↩ Deshacer</button>
+            <button id="btnDeleteProject" class="tool-btn" style="color:#f87171; border-color:rgba(239,68,68,0.3);">🗑
+                Borrar</button>
+        </div>
+    </div>
     </div>
 
     <!-- MODAL CREAR -->
@@ -618,14 +706,102 @@
     <!-- TOAST -->
     <div id="toast" class="toast">¡Guardado!</div>
 
-    <audio id="audioPlayer" style="display:none;"></audio>
+
+    <!-- VIDEO / AUDIO PLAYER (PiP) -->
+    <div id="mediaContainer" class="media-pip hidden">
+        <video id="videoPlayer" playsinline webkit-playsinline></video>
+        <button id="btnCloseVideo" class="close-pip">×</button>
+    </div>
+
+    <!-- MODAL NOTES -->
+    <div class="modal" id="notesModal">
+        <div class="modal-card">
+            <h2>Notas del Corte</h2>
+            <div style="font-size:0.8rem; color:#9ca3af; margin-bottom:8px;">Dirección / Guión / Ajustes</div>
+            <textarea id="noteTextarea" class="notes-area" placeholder="Escribe aquí..."></textarea>
+            <div style="display:flex; gap:8px; margin-top:16px;">
+                <button id="btnSaveNote" class="main-btn" style="flex:1; padding:12px; font-size:1rem;">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EXPORT MODAL -->
+    <div class="modal" id="exportModal">
+        <div class="modal-card">
+            <h2>Exportar</h2>
+            <div style="display:grid; gap:8px; margin-top:16px;">
+                <button class="tool-btn" onclick="exportData('json')">📦 JSON (Backup)</button>
+                <button class="tool-btn" onclick="exportData('csv')">📄 CSV (Excel/Sheets)</button>
+                <button class="tool-btn" onclick="exportData('edl')">🎬 EDL (Premiere/DaVinci)</button>
+            </div>
+            <button id="btnCloseExport"
+                style="margin-top:16px; width:100%; padding:12px; background:transparent; border:none; color:#9ca3af;">Cancelar</button>
+        </div>
+    </div>
+
 
     <script>
-        // --- BASE DE DATOS ---
+        // --- CONSTANTS ---
         const DB_NAME = 'KueStudioDB';
-        const DB_VERSION = 1;
-        let db;
+        const DB_VERSION = 2; // Incremented for schema updates if needed
+        const PEAKS_RESOLUTION = 100; // Peaks per second (visual resolution)
 
+        // --- STATE ---
+        let db;
+        let currentProject = null;
+        let recording = false;
+        let activeSegmentStart = null;
+        let duration = 0;
+        let activeSegmentId = null;
+        let lastActiveSegmentId = null;
+
+        // Audio/Video State
+        let audioContext = null;
+        let sourceNode = null;
+        let audioBuffer = null;
+        let peaks = []; // Optimized peaks array [min, max, min, max...]
+        let isVideo = false;
+
+        // Viewer State
+        let zoomLevel = 1; // 1 = 100px per second approx
+        let scrollLeft = 0;
+        let isScrolling = false;
+
+        // --- UI REFS ---
+        const els = {
+            views: { home: document.getElementById('viewHome'), editor: document.getElementById('viewEditor') },
+            modals: { new: document.getElementById('newProjectModal'), notes: document.getElementById('notesModal'), export: document.getElementById('exportModal') },
+            media: { container: document.getElementById('mediaContainer'), player: document.getElementById('videoPlayer') },
+            canvas: document.getElementById('waveCanvas'),
+            timelineWrapper: document.getElementById('timelineWrapper'),
+            timelineSpacer: document.getElementById('timelineSpacer'),
+            zoomSlider: document.getElementById('zoomSlider'),
+            projectList: document.getElementById('projectList'),
+            bpm: document.getElementById('bpmDisplay'),
+            loader: document.getElementById('waveLoading'),
+            playhead: document.getElementById('playhead'),
+            list: document.getElementById('listContainer'),
+            title: document.getElementById('projectTitleInput'),
+            fileDisplay: document.getElementById('fileNameDisplay'),
+            timeCurr: document.getElementById('currTime'),
+            timeTotal: document.getElementById('totalTime'),
+            textArea: document.getElementById('noteTextarea'),
+            btns: {
+                play: document.getElementById('btnPlay'),
+                mark: document.getElementById('btnMark'),
+                export: document.getElementById('btnExportJSON'), // Now opens modal
+                new: document.getElementById('btnNewProject'),
+                back: document.getElementById('btnBack'),
+                delete: document.getElementById('btnDeleteProject'),
+                undo: document.getElementById('btnUndo'),
+                saveNote: document.getElementById('btnSaveNote'),
+                closeExport: document.getElementById('btnCloseExport')
+            }
+        };
+
+        const ctx = els.canvas.getContext('2d', { alpha: false }); // Opt: No alpha channel needed for background
+
+        // --- DB ---
         const initDB = () => new Promise((resolve, reject) => {
             const req = indexedDB.open(DB_NAME, DB_VERSION);
             req.onupgradeneeded = (e) => {
@@ -659,61 +835,54 @@
             })
         };
 
-        // --- ESTADO ---
-        let currentProject = null;
-        let recording = false; // Indica si estamos en medio de un bloque ABIERTO
-        let activeSegmentStart = null; // Dónde empezó el bloque actual (si recording es true)
-        let duration = 0;
-        let activeSegmentId = null;
-
-        // Waveform & Audio Context Vars
-        let audioContext = null;
-        let audioBuffer = null;
-        let wavePeaks = [];
-
-        // --- UI REFS ---
-        const views = { home: document.getElementById('viewHome'), editor: document.getElementById('viewEditor') };
-        const modals = { new: document.getElementById('newProjectModal') };
-        const audio = document.getElementById('audioPlayer');
-        const canvas = document.getElementById('waveCanvas');
-        const ctx = canvas.getContext('2d');
-        const toast = document.getElementById('toast');
-        const bpmLabel = document.getElementById('bpmDisplay');
-        const waveLoader = document.getElementById('waveLoading');
-        const btnPlay = document.getElementById('btnPlay');
-        const btnMark = document.getElementById('btnMark');
-
-        // --- INICIO ---
+        // --- INIT & NAV ---
         async function initApp() {
-            resizeCanvas();
-            window.addEventListener('resize', resizeCanvas);
             await initDB();
+
+            // Resize Observer for Canvas
+            const resizeObserver = new ResizeObserver(() => resizeCanvas());
+            resizeObserver.observe(els.timelineWrapper);
+
+            // Scroll Listener
+            els.timelineWrapper.addEventListener('scroll', () => {
+                scrollLeft = els.timelineWrapper.scrollLeft;
+                if (!els.media.player.paused && !isScrolling) {
+                    // Optimized: Don't force redraw on scroll if playing (loop handles it)
+                } else {
+                    drawWaveform(); // Manual scroll needs redraw
+                }
+            }, { passive: true });
+
             loadHome();
             loop();
         }
 
-        // --- NAVEGACIÓN ---
         async function loadHome() {
-            if (audio.src) { audio.pause(); audio.src = ""; }
-            currentProject = null; recording = false; activeSegmentStart = null;
-            audioBuffer = null; wavePeaks = [];
+            els.media.player.pause();
+            els.media.player.src = "";
+            els.media.container.classList.add('hidden');
 
-            views.home.classList.remove('hidden-left');
-            views.editor.classList.add('hidden');
+            currentProject = null;
+            recording = false;
+            activeSegmentStart = null;
+            audioBuffer = null;
+            peaks = [];
+
+            els.views.home.classList.remove('hidden-left');
+            els.views.editor.classList.add('hidden');
             renderProjectList();
         }
 
         async function renderProjectList() {
-            const list = document.getElementById('projectList');
-            list.innerHTML = '<div style="color:var(--muted); text-align:center; padding:20px;">Cargando...</div>';
+            els.projectList.innerHTML = '<div style="color:var(--muted); text-align:center; padding:20px;">Cargando...</div>';
             const projects = await dbOps.getAll();
-            list.innerHTML = '';
+            els.projectList.innerHTML = '';
 
             if (projects.length === 0) {
-                list.innerHTML = `
+                els.projectList.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-icon">💿</div>
-                        <div><h3 style="margin:0;">Sin rolas</h3><p style="font-size:0.9rem;">Dale al + para subir tu música.</p></div>
+                        <div><h3 style="margin:0;">Sin Proyectos</h3><p style="font-size:0.9rem;">Importa audio o video para empezar.</p></div>
                     </div>`;
             } else {
                 projects.sort((a, b) => b.createdAt - a.createdAt).forEach(p => {
@@ -723,7 +892,7 @@
                         <div><div class="p-title">${p.name}</div><div class="p-date">${new Date(p.createdAt).toLocaleDateString()}</div></div>
                         <div class="p-meta"><span class="p-count">${p.segments.length} cortes</span></div>`;
                     card.onclick = () => openProject(p.id);
-                    list.appendChild(card);
+                    els.projectList.appendChild(card);
                 });
             }
         }
@@ -732,154 +901,383 @@
             const p = await dbOps.get(id);
             if (!p) return;
             currentProject = p;
-            audio.src = URL.createObjectURL(p.audioBlob);
 
-            document.getElementById('projectTitleInput').value = p.name;
-            document.getElementById('fileNameDisplay').textContent = p.audioBlob.name;
+            // Load Media
+            const url = URL.createObjectURL(p.audioBlob);
+            els.media.player.src = url;
 
-            // Resetear estado de grabación al abrir
+            // Video check
+            isVideo = p.audioBlob.type.startsWith('video');
+            if (isVideo) {
+                els.media.container.classList.remove('hidden');
+            } else {
+                els.media.container.classList.add('hidden');
+            }
+
+            els.title.value = p.name;
+            els.fileDisplay.textContent = p.audioBlob.name;
+
+            // Reset State
             recording = false;
             activeSegmentStart = null;
             updateMarkButtonUI();
 
-            views.home.classList.add('hidden-left');
-            views.editor.classList.remove('hidden');
+            // Zoom Reset
+            zoomLevel = 1;
+            els.zoomSlider.value = 1;
 
-            // Verificar si ya tenemos BPM guardado
-            if (p.bpm) bpmLabel.textContent = p.bpm + " BPM";
-            else bpmLabel.textContent = "-- BPM";
+            els.views.home.classList.add('hidden-left');
+            els.views.editor.classList.remove('hidden');
 
-            audio.onloadedmetadata = () => {
-                duration = audio.duration;
-                document.getElementById('totalTime').textContent = fmt(duration);
+            // BPM
+            els.bpm.textContent = p.bpm ? p.bpm + " BPM" : "-- BPM";
+
+            // Wait for metadata
+            els.media.player.onloadedmetadata = () => {
+                duration = els.media.player.duration;
+                els.timeTotal.textContent = fmt(duration);
+                updateSpacerWidth();
                 renderSegments();
                 updateControls();
-                analyzeAudio(p.audioBlob); // Disparar análisis waveform
+
+                // Analyze
+                analyzeAudio(p.audioBlob);
             };
 
-            audio.onended = () => {
-                btnPlay.innerHTML = "<span>▶</span>";
-                btnPlay.style.background = "";
-                // Si estaba grabando, pausamos pero no cerramos (opcional), o cerramos.
-                // El usuario pidió continuidad, así que mejor solo pausar UI.
+            els.media.player.onended = () => {
+                els.btns.play.innerHTML = "<span>▶</span>";
+                els.btns.play.style.background = "";
             };
         }
 
-        // --- AUDIO ANALYSIS ---
+        // --- CORE LOGIC: ANALYSIS (OPTIMIZED) ---
         async function analyzeAudio(blob) {
             try {
-                waveLoader.classList.add('show');
+                els.loader.classList.add('show');
+                els.loader.textContent = "Procesando...";
+
                 if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
+                // Decode Full ArrayBuffer - Heavy op, but necessary for clean waveform
+                // TODO: For >50MB files, we should use a different strategy, but for now this is standard PWA limit.
                 const arrayBuffer = await blob.arrayBuffer();
                 audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-                generateWaveform(audioBuffer);
+                // 1. Generate Waveform (Async / Chunked)
+                await generateWaveformChunked(audioBuffer);
 
+                // 2. Detect BPM (Optimized)
                 if (!currentProject.bpm) {
-                    const bpm = detectBPM(audioBuffer);
-                    if (bpm > 0) {
-                        currentProject.bpm = bpm;
-                        bpmLabel.textContent = bpm + " BPM";
-                        saveCurrentState();
-                    }
+                    detectBPM(audioBuffer);
                 }
-                waveLoader.classList.remove('show');
-            } catch (e) { console.error(e); waveLoader.textContent = "Error"; }
-        }
 
-        function generateWaveform(buffer) {
-            const channelData = buffer.getChannelData(0);
-            const samples = 1200; // Más resolución
-            const step = Math.ceil(channelData.length / samples);
-            wavePeaks = [];
-            for (let i = 0; i < samples; i++) {
-                let min = 1.0, max = -1.0;
-                for (let j = 0; j < step; j++) {
-                    const datum = channelData[(i * step) + j];
-                    if (datum < min) min = datum;
-                    if (datum > max) max = datum;
-                }
-                wavePeaks.push({ min, max });
+                els.loader.classList.remove('show');
+            } catch (e) {
+                console.error(e);
+                els.loader.textContent = "Error decode";
             }
         }
 
-        function detectBPM(buffer) {
-            // Detección simple basada en picos de energía
-            try {
+        function generateWaveformChunked(buffer) {
+            return new Promise((resolve) => {
                 const data = buffer.getChannelData(0);
+                const totalPeaks = Math.ceil(buffer.duration * PEAKS_RESOLUTION);
+                const step = Math.floor(data.length / totalPeaks);
+                peaks = new Float32Array(totalPeaks * 2); // [min, max, min, max...]
+
+                let i = 0;
+                const chunkSize = 5000; // Process 5000 peaks per frame
+
+                function process() {
+                    const end = Math.min(i + chunkSize, totalPeaks);
+                    for (; i < end; i++) {
+                        let min = 1.0, max = -1.0;
+                        const startSample = i * step;
+                        // Downsample the step
+                        for (let j = 0; j < step; j += 10) { // Skip samples for speed (lossy)
+                            const val = data[startSample + j];
+                            if (val < min) min = val;
+                            if (val > max) max = val;
+                        }
+                        // Simple noise gate
+                        if (min > -0.01) min = -0.01;
+                        if (max < 0.01) max = 0.01;
+
+                        peaks[i * 2] = min;
+                        peaks[i * 2 + 1] = max;
+                    }
+
+                    if (i < totalPeaks) {
+                        // Draw partial result (progressive loading)
+                        drawWaveform();
+                        requestAnimationFrame(process);
+                    } else {
+                        drawWaveform();
+                        resolve();
+                    }
+                }
+                process();
+            });
+        }
+
+        async function detectBPM(buffer) {
+            try {
+                // Offline Context for filtering
+                const offlineCtx = new OfflineAudioContext(1, buffer.length, buffer.sampleRate);
+                const source = offlineCtx.createBufferSource();
+                source.buffer = buffer;
+
+                // Lowpass Filter (Isolate Kick/Bass)
+                const filter = offlineCtx.createBiquadFilter();
+                filter.type = "lowpass";
+                filter.frequency.value = 150;
+
+                source.connect(filter);
+                filter.connect(offlineCtx.destination);
+                source.start(0);
+
+                const renderedBuffer = await offlineCtx.startRendering();
+                const data = renderedBuffer.getChannelData(0);
+
+                // Peak detection on filtered data
                 const sampleRate = buffer.sampleRate;
-                // Analizar un trozo de 10 segundos del medio
-                const startSample = Math.floor(data.length / 2) - (sampleRate * 5);
-                const endSample = startSample + (sampleRate * 10);
-                const fragment = data.slice(Math.max(0, startSample), Math.min(data.length, endSample));
+                const threshold = 0.25;
+                let hits = [];
 
-                let peaks = [];
-                const threshold = 0.3;
+                // Analyze center 30s
+                const center = Math.floor(data.length / 2);
+                const range = sampleRate * 15;
+                const start = Math.max(0, center - range);
+                const end = Math.min(data.length, center + range);
 
-                for (let i = 0; i < fragment.length; i++) {
-                    if (fragment[i] > threshold) {
-                        // Debounce simple de 0.2s
-                        if (peaks.length === 0 || (i - peaks[peaks.length - 1]) > (sampleRate * 0.25)) {
-                            peaks.push(i);
+                for (let i = start; i < end; i++) {
+                    if (data[i] > threshold) {
+                        if (hits.length === 0 || (i - hits[hits.length - 1]) > (sampleRate * 0.3)) { // 0.3s debounce (Limit 200BPM)
+                            hits.push(i);
                         }
                     }
                 }
-                if (peaks.length < 2) return 0;
 
-                // Calcular distancia promedio entre picos
-                let totalDist = 0;
-                for (let i = 0; i < peaks.length - 1; i++) {
-                    totalDist += (peaks[i + 1] - peaks[i]);
+                if (hits.length > 5) {
+                    let intervals = [];
+                    for (let i = 0; i < hits.length - 1; i++) {
+                        intervals.push(hits[i + 1] - hits[i]);
+                    }
+                    // Sort intervals and take median
+                    intervals.sort((a, b) => a - b);
+                    const medianDist = intervals[Math.floor(intervals.length / 2)];
+
+                    let bpm = 60 / (medianDist / sampleRate);
+                    // Normalize (70-170)
+                    while (bpm < 70) bpm *= 2;
+                    while (bpm > 170) bpm /= 2;
+
+                    bpm = Math.round(bpm);
+                    currentProject.bpm = bpm;
+                    els.bpm.textContent = bpm + " BPM";
+                    saveCurrentState();
                 }
-                const avgDist = totalDist / (peaks.length - 1);
-                const bpm = Math.round(60 / (avgDist / sampleRate));
-
-                // Ajustar a rango normal
-                let finalBpm = bpm;
-                while (finalBpm < 70) finalBpm *= 2;
-                while (finalBpm > 170) finalBpm /= 2;
-
-                return Math.round(finalBpm);
-            } catch (e) { return 0; }
+            } catch (e) { console.error("BPM Fail", e); }
         }
 
-        // --- LOGICA DE CORTE CORREGIDA ---
+        // --- RENDER LOOP ---
+        function resizeCanvas() {
+            // Internal canvas matches viewport width for performance
+            // We draw only the visible slice
+            if (els.timelineWrapper.clientWidth) {
+                els.canvas.width = els.timelineWrapper.clientWidth;
+                els.canvas.height = els.timelineWrapper.clientHeight;
+                drawWaveform();
+            }
+        }
 
-        // 1. Play/Pause
-        btnPlay.onclick = () => {
-            if (audio.paused) {
-                audio.play();
-                btnPlay.innerHTML = "<span>⏸</span>";
-                btnPlay.style.background = "#475569";
+        function updateSpacerWidth() {
+            // Width = (Duration * Resolution) * ZoomFactor / Resolution ... 
+            // Simplified: Base width = Duration * 50px? 
+            // Let's say zoom 1 = 20px per second. Max zoom = 200px/s?
+            const pxPerSec = 20 * zoomLevel;
+            const totalW = duration * pxPerSec;
+            els.timelineSpacer.style.width = `${totalW}px`;
+
+            // Keep playhead visual sync
+            requestAnimationFrame(drawWaveform);
+        }
+
+        els.zoomSlider.oninput = (e) => {
+            zoomLevel = parseFloat(e.target.value);
+            updateSpacerWidth();
+        };
+
+        function drawWaveform() {
+            const cvsW = els.canvas.width;
+            const cvsH = els.canvas.height;
+            ctx.clearRect(0, 0, cvsW, cvsH);
+            ctx.fillStyle = "#111827";
+            ctx.fillRect(0, 0, cvsW, cvsH); // BG
+
+            if (!peaks.length) return;
+
+            // Coordinate System
+            // spacerWidth = duration * 20 * zoomLevel.
+            // scrollLeft = viewport start.
+            const pxPerSec = 20 * zoomLevel;
+            const visibleStartSec = scrollLeft / pxPerSec;
+            const visibleEndSec = (scrollLeft + cvsW) / pxPerSec;
+
+            // Map to peaks array
+            const peakStartIdx = Math.floor(visibleStartSec * PEAKS_RESOLUTION) * 2;
+            const peakEndIdx = Math.ceil(visibleEndSec * PEAKS_RESOLUTION) * 2;
+
+            // Draw Wave
+            ctx.fillStyle = "rgba(139, 92, 246, 0.4)";
+            ctx.beginPath();
+
+            const startX = - (scrollLeft % 1); // Sub-pixel align? Nah just 0 works relative to viewport
+            // Actually, we must offset by `scrollLeft` relative to absolute X.
+            // x_screen = x_absolute - scrollLeft.
+
+            const centerY = cvsH / 2;
+            const halfH = cvsH / 2.2;
+
+            // Performance: Draw lines
+            for (let i = peakStartIdx; i < peakEndIdx; i += 2) {
+                if (i >= peaks.length) break;
+                if (i < 0) continue;
+
+                const peakTime = (i / 2) / PEAKS_RESOLUTION;
+                const x = (peakTime * pxPerSec) - scrollLeft;
+
+                const min = peaks[i];
+                const max = peaks[i + 1];
+
+                // Draw a vertical bar (cheaper than path sometimes, but Path is cleaner)
+                // For zoom out, bars overlap -> dense visual.
+                const w = Math.max(1, (1 / PEAKS_RESOLUTION) * pxPerSec);
+
+                ctx.rect(x, centerY + (min * halfH), w, (max - min) * halfH);
+            }
+            ctx.fill();
+
+            // Draw Segments
+            if (currentProject) {
+                currentProject.segments.forEach(s => {
+                    const startX = (s.start * pxPerSec) - scrollLeft;
+                    const endX = (s.end * pxPerSec) - scrollLeft;
+
+                    if (endX < 0 || startX > cvsW) return; // Cull
+
+                    const w = endX - startX;
+
+                    // Box
+                    ctx.fillStyle = "rgba(139, 92, 246, 0.15)";
+                    if (activeSegmentId === s.id) ctx.fillStyle = "rgba(139, 92, 246, 0.35)";
+                    ctx.fillRect(startX, 0, w, cvsH);
+
+                    // Border
+                    ctx.strokeStyle = "rgba(139, 92, 246, 0.5)";
+                    ctx.strokeRect(startX, 0, w, cvsH);
+
+                    // Valid Label (if big enough)
+                    if (w > 30) {
+                        ctx.fillStyle = "#ddd6fe";
+                        ctx.font = "10px monospace";
+                        ctx.fillText(fmt(s.start), startX + 4, 12);
+                    }
+                });
+            }
+
+            // Draw Recording Ghost
+            if (recording && activeSegmentStart !== null) {
+                const startX = (activeSegmentStart * pxPerSec) - scrollLeft;
+                const endX = (els.media.player.currentTime * pxPerSec) - scrollLeft;
+                const w = endX - startX;
+                ctx.fillStyle = "rgba(239, 68, 68, 0.2)";
+                ctx.fillRect(startX, 0, w, cvsH);
+                ctx.strokeStyle = "#ef4444";
+                ctx.strokeRect(startX, 0, w, cvsH);
+            }
+        }
+
+        function loop() {
+            requestAnimationFrame(loop);
+
+            if (!currentProject || !duration) return;
+
+            const pxPerSec = 20 * zoomLevel;
+            const currentTime = els.media.player.currentTime;
+
+            // 1. Update Playhead Position
+            // The Playhead is a separate DOM element for smoothness, OR drawn on Canvas.
+            // Using DOM element in `timelineWrapper` is trickier because it needs absolute pos.
+            // Let's just draw it OR move a sticky div? 
+            // In the HTML I put `<div id="playhead">`. Let's move it.
+            const playheadX = (currentTime * pxPerSec);
+            els.playhead.style.transform = `translateX(${playheadX}px)`;
+
+            // 2. Auto Scroll (Follow Playhead)
+            if (!els.media.player.paused) {
+                const visibleW = els.timelineWrapper.clientWidth;
+                // If playhead goes near end of view, scroll.
+                if (playheadX > scrollLeft + visibleW * 0.8) {
+                    els.timelineWrapper.scrollLeft += visibleW * 0.5; // Jump scroll (Pager)
+                }
+                // Draw dynamic ghost segment
+                if (recording) drawWaveform();
+            }
+
+            // 3. UI Time
+            els.timeCurr.textContent = fmt(currentTime);
+
+            // 4. Highlight Logic (Debounced Scroll)
+            if (!els.media.player.paused) {
+                const active = currentProject.segments.find(s => currentTime >= s.start && currentTime < s.end);
+                const activeId = active ? active.id : null;
+
+                if (activeSegmentId !== activeId) {
+                    activeSegmentId = activeId;
+
+                    // DOM Updates
+                    document.querySelectorAll('.segment-item').forEach(el => el.classList.remove('active'));
+                    if (activeId) {
+                        const el = document.getElementById(`seg-${activeId}`);
+                        if (el) {
+                            el.classList.add('active');
+                            // Only auto-scroll the list if we really changed segments
+                            if (activeId !== lastActiveSegmentId) {
+                                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                lastActiveSegmentId = activeId;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- CONTROLS ---
+        els.btns.play.onclick = () => {
+            if (els.media.player.paused) {
+                els.media.player.play();
+                els.btns.play.innerHTML = "<span>⏸</span>";
+                els.btns.play.style.background = "#475569";
             } else {
-                audio.pause();
-                btnPlay.innerHTML = "<span>▶</span>";
-                btnPlay.style.background = "";
+                els.media.player.pause();
+                els.btns.play.innerHTML = "<span>▶</span>";
+                els.btns.play.style.background = "";
             }
         };
 
-        // 2. Mark Logic (The Core Fix)
-        btnMark.onclick = () => {
+        els.btns.mark.onclick = () => {
             if (!currentProject) return;
-            const now = audio.currentTime;
+            const now = els.media.player.currentTime;
             if (navigator.vibrate) navigator.vibrate(40);
 
-            // CASO A: NO ESTAMOS GRABANDO NADA -> ABRIR NUEVO BLOQUE
             if (!recording) {
                 startSegment(now);
-                if (audio.paused) btnPlay.click(); // Auto-play si está quieto
-            }
-            // CASO B: ESTAMOS GRABANDO -> CERRAR BLOQUE ACTUAL
-            else {
-                // Validar que no sea un micro-toque accidental (< 0.1s)
+                if (els.media.player.paused) els.media.player.play();
+            } else {
                 if (now - activeSegmentStart < 0.1) return;
-
                 finishSegment(now);
-                // Inmediatamente abrimos el siguiente (Comportamiento "Cadena")
-                // startSegment(now); // <-- SI QUIERES CORTES SEGUIDOS DESCOMENTA ESTO
-                // PERO si prefieres Play/Stop estilo clásico:
-                startSegment(now); // Lo dejamos encadenado por defecto para videoclips
+                startSegment(now); // Chain mode
             }
         };
 
@@ -896,183 +1294,189 @@
                 end: endTime,
                 note: ""
             };
-
-            // Aquí estaba el bug: antes revisábamos si "chocaba".
-            // Ahora somos permisivos: simplemente lo agregamos y ordenamos después.
             currentProject.segments.push(newSeg);
-
-            // Resetear inicio para el siguiente (encadenado)
             activeSegmentStart = endTime;
-
             renderSegments();
             saveCurrentState();
 
-            // Scroll al nuevo item
+            // Scroll list
             setTimeout(() => {
                 const el = document.getElementById(`seg-${newSeg.id}`);
                 if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 50);
+
+            drawWaveform();
         }
 
-        // Función para actualizar la cara del botón Mark según el estado
         function updateMarkButtonUI() {
+            const btn = els.btns.mark;
             if (recording) {
-                btnMark.innerHTML = "<span>✂ CORTAR</span>";
-                btnMark.className = "main-btn btn-mark recording";
-
-                // Si pausamos el audio, cambiamos el botón a "CONTINUAR"
-                if (audio.paused) {
-                    btnMark.innerHTML = "<span>▶ CONTINUAR</span>";
-                    btnMark.className = "main-btn btn-mark resume";
+                btn.innerHTML = "<span>✂ CORTAR</span>";
+                btn.className = "main-btn btn-mark recording";
+                if (els.media.player.paused) {
+                    btn.innerHTML = "<span>▶ CONTINUAR</span>";
+                    btn.className = "main-btn btn-mark resume";
                 }
             } else {
-                btnMark.innerHTML = "<span>⚡ INICIAR</span>";
-                btnMark.className = "main-btn btn-mark";
+                btn.innerHTML = "<span>⚡ INICIAR</span>";
+                btn.className = "main-btn btn-mark";
             }
         }
 
-        // Escuchar pausa/play para actualizar el botón si estamos a medio corte
-        audio.onpause = () => updateMarkButtonUI();
-        audio.onplay = () => updateMarkButtonUI();
+        els.media.player.onpause = updateMarkButtonUI;
+        els.media.player.onplay = updateMarkButtonUI;
 
-        // --- UTILIDADES UI ---
-        document.getElementById('btnNewProject').onclick = () => modals.new.classList.add('show');
-        document.getElementById('btnCloseModal').onclick = () => modals.new.classList.remove('show');
+        // --- SEGMENT LIST & MODAL UI ---
+        function renderSegments() {
+            els.list.innerHTML = "";
+            if (!currentProject || currentProject.segments.length === 0) {
+                els.list.innerHTML = `<div style="padding:40px; text-align:center; color:#4b5563;">Aún no hay cortes.</div>`;
+                return;
+            }
+            currentProject.segments.sort((a, b) => a.start - b.start);
 
+            currentProject.segments.forEach((s, idx) => {
+                const el = document.createElement('div');
+                el.className = 'segment-item';
+                if (activeSegmentId === s.id) el.classList.add('active');
+                el.id = `seg-${s.id}`;
+
+                const noteShort = s.note ? s.note.substring(0, 20) + (s.note.length > 20 ? "..." : "") : "";
+                const noteBtnClass = s.note ? "tool-btn" : "tool-btn";
+                const noteIcon = s.note ? "📝" : "➕";
+
+                el.innerHTML = `
+                  <div class="time-badge" onclick="jumpTo(${s.start})">${fmt(s.start)}</div>
+                  <div style="flex:1; display:flex; gap:8px; align-items:center;">
+                      <button class="${noteBtnClass}" style="padding:4px 8px; font-size:0.8rem;" onclick="openNoteModal(${s.id})">
+                        ${noteIcon} <span style="opacity:0.7; font-weight:normal;">${noteShort || "Nota"}</span>
+                      </button>
+                  </div>
+                  <button class="delete-btn" onclick="deleteSeg(${s.id})">✕</button>`;
+                els.list.appendChild(el);
+            });
+            drawWaveform(); // Update highlights
+        }
+
+        // --- NOTES MODAL LOGICState ---
+        let editingSegmentId = null;
+        window.openNoteModal = (segId) => {
+            editingSegmentId = segId;
+            const seg = currentProject.segments.find(s => s.id === segId);
+            if (seg) {
+                els.textArea.value = seg.note || "";
+                els.modals.notes.classList.add('show');
+                els.textArea.focus();
+            }
+        };
+
+        els.btns.saveNote.onclick = () => {
+            if (editingSegmentId) {
+                const seg = currentProject.segments.find(s => s.id === editingSegmentId);
+                if (seg) {
+                    seg.note = els.textArea.value;
+                    saveCurrentState();
+                    renderSegments();
+                }
+            }
+            els.modals.notes.classList.remove('show');
+        };
+
+        els.modals.notes.onclick = (e) => {
+            if (e.target === els.modals.notes) els.modals.notes.classList.remove('show');
+        };
+
+        // --- EXPORT LOGIC ---
+        els.btns.export.onclick = () => els.modals.export.classList.add('show');
+        els.btns.closeExport.onclick = () => els.modals.export.classList.remove('show');
+
+        window.exportData = (format) => {
+            if (!currentProject) return;
+            const p = currentProject;
+            let content = "";
+            let mime = "text/plain";
+            let ext = "txt";
+
+            if (format === 'json') {
+                content = JSON.stringify({ name: p.name, bpm: p.bpm, segments: p.segments }, null, 2);
+                mime = "application/json"; ext = "json";
+            }
+            else if (format === 'csv') {
+                content = "Index,Start,End,Duration,Note\n";
+                p.segments.forEach((s, i) => {
+                    content += `${i + 1},${fmt(s.start)},${fmt(s.end)},${(s.end - s.start).toFixed(2)},"${(s.note || "").replace(/"/g, '""')}"\n`;
+                });
+                mime = "text/csv"; ext = "csv";
+            }
+            else if (format === 'edl') {
+                // Basic CMX 3600 approximation
+                content = `TITLE: ${p.name}\nFCM: NON-DROP FRAME\n\n`;
+                p.segments.forEach((s, i) => {
+                    // 001  AX       V     C        00:00:00:00 00:00:05:00 00:00:00:00 00:00:05:00 
+                    // Timecode calc is complex without fps, assuming 30fps roughly for demo
+                    const toTC = (sec) => {
+                        const f = Math.floor((sec % 1) * 30);
+                        const sc = Math.floor(sec % 60);
+                        const m = Math.floor(sec / 60) % 60;
+                        const h = Math.floor(sec / 3600);
+                        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sc.toString().padStart(2, '0')}:${f.toString().padStart(2, '0')}`;
+                    };
+                    const line = `${(i + 1).toString().padStart(3, '0')}  AX       V     C        ${toTC(s.start)} ${toTC(s.end)} ${toTC(s.start)} ${toTC(s.end)}\n`;
+                    content += line;
+                    if (s.note) content += `* COMMENT: ${s.note}\n`;
+                });
+                ext = "edl";
+            }
+
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([content], { type: mime }));
+            a.download = `${p.name}_export.${ext}`;
+            a.click();
+            els.toast.textContent = "Exportado " + ext.toUpperCase();
+            els.toast.classList.add('show');
+            setTimeout(() => els.toast.classList.remove('show'), 2000);
+            els.modals.export.classList.remove('show');
+        };
+
+        // --- GLOBAL HELPERS ---
+        window.jumpTo = (t) => { els.media.player.currentTime = t; if (els.media.player.paused) els.media.player.play(); };
+        window.deleteSeg = (id) => { if (confirm("¿Borrar?")) { currentProject.segments = currentProject.segments.filter(x => x.id !== id); renderSegments(); saveCurrentState(); } };
+        async function saveCurrentState() { if (currentProject) await dbOps.save(currentProject); }
+        function fmt(s) { if (!isFinite(s)) return "00:00"; const m = Math.floor(s / 60), sc = Math.floor(s % 60); return `${m}:${sc.toString().padStart(2, '0')}`; }
+        function updateControls() { const on = duration > 0; els.btns.play.disabled = !on; els.btns.mark.disabled = !on; }
+
+        // --- BOOT ---
+        // Setup Media Inputs
+        document.getElementById('newAudioFile').setAttribute('accept', 'audio/*,video/*');
         document.getElementById('newAudioFile').onchange = async (e) => {
             const file = e.target.files[0];
             if (!file) return;
             const name = document.getElementById('newProjectName').value.trim() || file.name.split('.')[0];
             const id = Date.now().toString();
             await dbOps.save({ id, name, createdAt: Date.now(), audioBlob: file, segments: [] });
-            modals.new.classList.remove('show');
+            els.modals.new.classList.remove('show');
             openProject(id);
         };
 
-        document.getElementById('btnBack').onclick = () => { saveCurrentState(); loadHome(); };
-        document.getElementById('btnDeleteProject').onclick = async () => { if (confirm("¿Borrar?")) { await dbOps.delete(currentProject.id); loadHome(); } };
-
-        document.getElementById('btnExportJSON').onclick = () => {
-            if (!currentProject) return;
-            const data = {
-                name: currentProject.name,
-                bpm: currentProject.bpm || 0,
-                source: currentProject.audioBlob.name,
-                segments: currentProject.segments
-            };
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
-            a.download = `${currentProject.name}_kue.json`;
-            a.click();
-            showToastMsg("JSON listo");
-        };
-
-        document.getElementById('btnUndo').onclick = () => {
+        // Utilities
+        els.btns.new.onclick = () => els.modals.new.classList.add('show');
+        els.modals.new.querySelector('#btnCloseModal').onclick = () => els.modals.new.classList.remove('show');
+        els.btns.back.onclick = () => { saveCurrentState(); loadHome(); };
+        els.btns.delete.onclick = async () => { if (confirm("¿Borrar Proyecto?")) { await dbOps.delete(currentProject.id); loadHome(); } };
+        els.btns.undo.onclick = () => {
             if (currentProject?.segments.length > 0) {
                 const rem = currentProject.segments.pop();
-                // Si estamos grabando, regresamos el "inicio" del corte actual al inicio del que borramos
                 if (recording) {
                     activeSegmentStart = rem.start;
-                    audio.currentTime = rem.start; // Rebobinar para corregir
+                    els.media.player.currentTime = rem.start;
                 }
-                renderSegments(); saveCurrentState(); showToastMsg("Deshecho");
+                renderSegments(); saveCurrentState();
             }
         };
 
-        async function saveCurrentState() { if (currentProject) await dbOps.save(currentProject); }
-        function showToastMsg(msg) { toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2000); }
-
-        // RENDER LISTA
-        const listContainer = document.getElementById('listContainer');
-        function renderSegments() {
-            listContainer.innerHTML = "";
-            if (!currentProject || currentProject.segments.length === 0) {
-                listContainer.innerHTML = `<div style="padding:40px; text-align:center; color:#4b5563;">Aún no hay cortes.</div>`;
-                return;
-            }
-            // Ordenar cronológicamente para que la lista tenga sentido visual
-            currentProject.segments.sort((a, b) => a.start - b.start);
-
-            currentProject.segments.forEach((s, idx) => {
-                const el = document.createElement('div');
-                el.className = 'segment-item'; el.id = `seg-${s.id}`;
-                el.innerHTML = `
-                  <div class="time-badge" onclick="jumpTo(${s.start})">${fmt(s.start)}</div>
-                  <div class="segment-note"><input type="text" placeholder="Corte ${idx + 1}..." value="${s.note}" onchange="updateNote(${s.id}, this.value)"></div>
-                  <button class="delete-btn" onclick="deleteSeg(${s.id})">✕</button>`;
-                listContainer.appendChild(el);
-            });
-        }
-
-        window.jumpTo = (t) => { audio.currentTime = t; if (audio.paused) audio.play(); };
-        window.updateNote = (id, v) => { const s = currentProject.segments.find(x => x.id === id); if (s) { s.note = v; saveCurrentState(); } };
-        window.deleteSeg = (id) => { if (confirm("¿Borrar?")) { currentProject.segments = currentProject.segments.filter(x => x.id !== id); renderSegments(); saveCurrentState(); } };
-
-        // --- LOOP VISUAL (CANVAS) ---
-        function loop() {
-            requestAnimationFrame(loop);
-            if (!currentProject || !duration) return;
-            const w = canvas.width; const h = canvas.height;
-            ctx.clearRect(0, 0, w, h);
-
-            // 1. WAVEFORM
-            if (wavePeaks.length > 0) {
-                ctx.fillStyle = "rgba(139, 92, 246, 0.2)"; // Morado suave
-                ctx.beginPath();
-                const widthScale = w / wavePeaks.length;
-                ctx.moveTo(0, h / 2);
-                wavePeaks.forEach((p, i) => ctx.lineTo(i * widthScale, (h / 2) + (p.min * h / 2)));
-                for (let i = wavePeaks.length - 1; i >= 0; i--) ctx.lineTo(i * widthScale, (h / 2) + (wavePeaks[i].max * h / 2));
-                ctx.fill();
-            }
-
-            // 2. SEGMENTOS
-            ctx.fillStyle = "rgba(139, 92, 246, 0.3)";
-            currentProject.segments.forEach(s => {
-                const x = (s.start / duration) * w; const bw = ((s.end - s.start) / duration) * w;
-                ctx.fillRect(x, 0, bw, h);
-                ctx.strokeStyle = "rgba(139, 92, 246, 0.8)"; ctx.strokeRect(x, 0, bw, h);
-            });
-
-            // 3. RECORDING GHOST SEGMENT
-            if (recording && activeSegmentStart !== null) {
-                const x = (activeSegmentStart / duration) * w;
-                const bw = ((audio.currentTime - activeSegmentStart) / duration) * w;
-                ctx.fillStyle = "rgba(239, 68, 68, 0.4)"; // Rojo
-                ctx.fillRect(x, 0, bw, h);
-                ctx.strokeStyle = "#ef4444"; ctx.strokeRect(x, 0, bw, h);
-            }
-
-            // 4. PLAYHEAD
-            const px = (audio.currentTime / duration) * w;
-            ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, h);
-            ctx.lineWidth = 2; ctx.strokeStyle = "#f472b6"; ctx.stroke();
-
-            // UI Updates
-            if (!audio.paused) {
-                document.getElementById('currTime').textContent = fmt(audio.currentTime);
-                const active = currentProject.segments.find(s => audio.currentTime >= s.start && audio.currentTime < s.end);
-                if (active && activeSegmentId !== active.id) {
-                    activeSegmentId = active.id;
-                    document.querySelectorAll('.segment-item').forEach(el => el.classList.remove('active'));
-                    const el = document.getElementById(`seg-${active.id}`);
-                    if (el) { el.classList.add('active'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-                }
-            }
-        }
-
-        canvas.addEventListener('pointerdown', (e) => {
-            if (!duration) return;
-            const rect = canvas.getBoundingClientRect();
-            audio.currentTime = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * duration;
-        });
-
-        function resizeCanvas() { if (canvas.parentElement) { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; } }
-        function fmt(s) { if (!isFinite(s)) return "00:00"; const m = Math.floor(s / 60), sc = Math.floor(s % 60); return `${m}:${sc.toString().padStart(2, '0')}`; }
-        function updateControls() { const on = duration > 0; btnPlay.disabled = !on; btnMark.disabled = !on; }
+        document.getElementById('btnCloseVideo').onclick = () => els.media.container.classList.add('hidden');
 
         initApp();
     </script>
 </body>
-
 </html>
