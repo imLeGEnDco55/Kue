@@ -11,7 +11,7 @@ export const Waveform = () => {
 
     const {
         videoUrl, isPlaying, currentTime, zoom,
-        segments, setCurrentTime,
+        segments, setCurrentTime, setZoom,
         isRecording, activeSegmentStart, addSegment, showToast
     } = useProjectStore();
 
@@ -73,7 +73,14 @@ export const Waveform = () => {
         });
 
         return () => {
-            wavesurfer.current?.destroy();
+            // Safe cleanup - wrap in try-catch to prevent AbortError
+            try {
+                wavesurfer.current?.destroy();
+            } catch (e) {
+                // Ignore AbortError on cleanup
+            }
+            wavesurfer.current = null;
+            regionsPlugin.current = null;
             setIsReady(false);
         };
     }, [videoUrl]);
@@ -131,9 +138,13 @@ export const Waveform = () => {
         const ghostId = '__ghost_segment__';
 
         // Remove existing ghost
-        const existingGhost = regionsPlugin.current.getRegions().find(r => r.id === ghostId);
-        if (existingGhost) {
-            existingGhost.remove();
+        try {
+            const existingGhost = regionsPlugin.current.getRegions().find(r => r.id === ghostId);
+            if (existingGhost) {
+                existingGhost.remove();
+            }
+        } catch (e) {
+            // Ignore errors during cleanup
         }
 
         // Add new ghost if recording
@@ -179,15 +190,62 @@ export const Waveform = () => {
         }
     }, [currentTime, isReady]);
 
+    // Pinch-to-zoom for mobile
+    useEffect(() => {
+        if (!containerRef.current) return;
+
+        let initialDistance = 0;
+        let initialZoom = zoom;
+
+        const handleTouchStart = (e: TouchEvent) => {
+            if (e.touches.length === 2) {
+                const dx = e.touches[0].clientX - e.touches[1].clientX;
+                const dy = e.touches[0].clientY - e.touches[1].clientY;
+                initialDistance = Math.sqrt(dx * dx + dy * dy);
+                initialZoom = useProjectStore.getState().zoom;
+            }
+        };
+
+        const handleTouchMove = (e: TouchEvent) => {
+            if (e.touches.length === 2 && initialDistance > 0) {
+                const dx = e.touches[0].clientX - e.touches[1].clientX;
+                const dy = e.touches[0].clientY - e.touches[1].clientY;
+                const currentDistance = Math.sqrt(dx * dx + dy * dy);
+
+                const scale = currentDistance / initialDistance;
+                const newZoom = Math.max(5, Math.min(200, initialZoom * scale));
+
+                setZoom(Math.round(newZoom));
+                e.preventDefault();
+            }
+        };
+
+        const handleTouchEnd = () => {
+            initialDistance = 0;
+        };
+
+        const el = containerRef.current;
+        el.addEventListener('touchstart', handleTouchStart, { passive: true });
+        el.addEventListener('touchmove', handleTouchMove, { passive: false });
+        el.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+        return () => {
+            el.removeEventListener('touchstart', handleTouchStart);
+            el.removeEventListener('touchmove', handleTouchMove);
+            el.removeEventListener('touchend', handleTouchEnd);
+        };
+    }, [setZoom]);
+
     return (
-        <div className="w-full h-full bg-black/50 border-t border-b border-neon-purple/30 backdrop-blur-sm relative">
+        <div className="w-full h-full bg-black/50 border-t border-b border-neon-purple/30 backdrop-blur-sm relative touch-none">
             <div ref={containerRef} className="w-full h-full" />
 
             {/* Instructions overlay */}
             {isReady && segments.length === 0 && !isRecording && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="text-white/30 text-sm font-mono bg-black/50 px-4 py-2 rounded-lg">
-                        Doble-click para crear un segmento • Arrastra para mover
+                    <div className="text-white/30 text-sm font-mono bg-black/50 px-4 py-2 rounded-lg text-center">
+                        <div className="hidden md:block">Doble-click para crear • Arrastra para mover</div>
+                        <div className="md:hidden">Pellizca para zoom • Toca dos veces para crear</div>
                     </div>
                 </div>
             )}
