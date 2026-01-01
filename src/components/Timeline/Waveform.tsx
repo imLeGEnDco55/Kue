@@ -89,26 +89,39 @@ export const Waveform = () => {
     useEffect(() => {
         if (!regionsPlugin.current || !isReady) return;
 
-        // Clear existing regions
-        regionsPlugin.current.clearRegions();
-
-        // Add regions for each segment with custom color
-        segments.forEach((seg) => {
-            // Convert hex color to rgba with transparency
-            const hexColor = seg.color || '#8b5cf6';
-            const r = parseInt(hexColor.slice(1, 3), 16);
-            const g = parseInt(hexColor.slice(3, 5), 16);
-            const b = parseInt(hexColor.slice(5, 7), 16);
-
-            regionsPlugin.current?.addRegion({
-                id: seg.id,
-                start: seg.start,
-                end: seg.end,
-                color: `rgba(${r}, ${g}, ${b}, 0.35)`,
-                drag: true,
-                resize: true,
+        try {
+            // Clear existing regions safely
+            const existingRegions = regionsPlugin.current.getRegions();
+            existingRegions.forEach(r => {
+                if (r.id !== '__ghost_segment__') {
+                    try { r.remove(); } catch (e) { /* console.warn(e); */ }
+                }
             });
-        });
+
+            // Add regions for each segment with custom color
+            segments.forEach((seg) => {
+                // Convert hex color to rgba with transparency
+                const hexColor = seg.color || '#8b5cf6';
+                const r = parseInt(hexColor.slice(1, 3), 16);
+                const g = parseInt(hexColor.slice(3, 5), 16);
+                const b = parseInt(hexColor.slice(5, 7), 16);
+
+                try {
+                    regionsPlugin.current?.addRegion({
+                        id: seg.id,
+                        start: seg.start,
+                        end: seg.end,
+                        color: `rgba(${r}, ${g}, ${b}, 0.35)`,
+                        drag: true,
+                        resize: true,
+                    });
+                } catch (e) {
+                    console.warn("Failed to add region:", seg.id, e);
+                }
+            });
+        } catch (err) {
+            console.error("Critical regions sync error:", err);
+        }
 
     }, [segments, isReady]);
 
@@ -117,6 +130,7 @@ export const Waveform = () => {
         if (!regionsPlugin.current || !isReady) return;
 
         const handleRegionUpdate = (region: Region) => {
+            if (region.id === '__ghost_segment__') return;
             const { updateSegment } = useProjectStore.getState();
             updateSegment(region.id, {
                 start: region.start,
@@ -149,14 +163,18 @@ export const Waveform = () => {
 
         // Add new ghost if recording
         if (isRecording && activeSegmentStart !== null && currentTime > activeSegmentStart) {
-            regionsPlugin.current.addRegion({
-                id: ghostId,
-                start: activeSegmentStart,
-                end: currentTime,
-                color: 'rgba(239, 68, 68, 0.4)',
-                drag: false,
-                resize: false,
-            });
+            try {
+                regionsPlugin.current.addRegion({
+                    id: ghostId,
+                    start: activeSegmentStart,
+                    end: currentTime,
+                    color: 'rgba(239, 68, 68, 0.4)',
+                    drag: false,
+                    resize: false,
+                });
+            } catch (e) {
+                // Final safety
+            }
         }
     }, [isRecording, activeSegmentStart, currentTime, isReady]);
 

@@ -273,6 +273,8 @@ function App() {
           </button>
           <input
             type="text"
+            id="project-name"
+            name="project-name"
             value={projectName}
             onChange={(e) => {
               setProjectName(e.target.value);
