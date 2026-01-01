@@ -194,11 +194,11 @@ El usuario:
 - **No es programador** (Product Owner)
 - Trabaja principalmente en **móvil**
 - Usa la app para crear **videoclips musicales**
-- Genera los videos en **Veo 3.1** externamente
+- Genera los videos en **IA video generators** externamente
 
 Al proponer cambios, siempre pensar:
 - ¿Mejora el flujo en móvil?
-- ¿Simplifica el camino hacia Veo?
+- ¿Simplifica el camino hacia IA video generators?
 - ¿Es realmente necesario o es over-engineering?
 
 ---

@@ -49,7 +49,7 @@ export const ExportModal = ({ isOpen, onClose, projectName, projectId }: ExportM
         return [headers, ...rows].join('\n');
     };
 
-    // Generate AI Script optimized for Veo 3.1
+    // Generate AI Script optimized for AI video generators like Veo
     const generateAIScript = () => {
         const lines: string[] = [];
 

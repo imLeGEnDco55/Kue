@@ -190,7 +190,7 @@ export const Waveform = () => {
         }
     }, [currentTime, isReady]);
 
-    // Pinch-to-zoom for mobile
+    // Pinch-to-zoom for mobile & Wheel zoom for desktop
     useEffect(() => {
         if (!containerRef.current) return;
 
@@ -224,15 +224,25 @@ export const Waveform = () => {
             initialDistance = 0;
         };
 
+        const handleWheel = (e: WheelEvent) => {
+            if (e.altKey) {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -10 : 10;
+                setZoom(Math.max(5, Math.min(200, useProjectStore.getState().zoom + delta)));
+            }
+        };
+
         const el = containerRef.current;
         el.addEventListener('touchstart', handleTouchStart, { passive: true });
         el.addEventListener('touchmove', handleTouchMove, { passive: false });
         el.addEventListener('touchend', handleTouchEnd, { passive: true });
+        el.addEventListener('wheel', handleWheel, { passive: false });
 
         return () => {
             el.removeEventListener('touchstart', handleTouchStart);
             el.removeEventListener('touchmove', handleTouchMove);
             el.removeEventListener('touchend', handleTouchEnd);
+            el.removeEventListener('wheel', handleWheel);
         };
     }, [setZoom]);
 
@@ -244,7 +254,7 @@ export const Waveform = () => {
             {isReady && segments.length === 0 && !isRecording && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="text-white/30 text-sm font-mono bg-black/50 px-4 py-2 rounded-lg text-center">
-                        <div className="hidden md:block">Doble-click para crear • Arrastra para mover</div>
+                        <div className="hidden md:block">Alt + Rueda: Zoom • Doble-click para crear</div>
                         <div className="md:hidden">Pellizca para zoom • Toca dos veces para crear</div>
                     </div>
                 </div>

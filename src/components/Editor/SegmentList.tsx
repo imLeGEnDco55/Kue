@@ -43,7 +43,7 @@ export const SegmentList = () => {
             if (listRef.current) {
                 const el = listRef.current.querySelector(`[data-seg-id="${active.id}"]`);
                 if (el) {
-                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.scrollIntoView({ behavior: 'auto', block: 'nearest' });
                 }
             }
         }
@@ -74,7 +74,7 @@ export const SegmentList = () => {
         setColorPickerOpen(null);
     };
 
-    // Copy prompt for Veo (optimized format)
+    // Copy prompt for AI video generators (optimized format)
     const handleCopyForVeo = async (seg: typeof segments[0]) => {
         const duration = (seg.end - seg.start).toFixed(1);
         const prompt = seg.note
@@ -223,7 +223,7 @@ export const SegmentList = () => {
                             <input
                                 value={seg.note}
                                 onChange={(e) => updateSegment(seg.id, { note: e.target.value })}
-                                placeholder={`Prompt para Veo...`}
+                                placeholder={`Nota...`}
                                 className="flex-1 bg-transparent text-sm text-white focus:outline-none placeholder:text-white/30 placeholder:italic"
                             />
 
@@ -234,7 +234,7 @@ export const SegmentList = () => {
                                     ? 'bg-green-500/20 text-green-400'
                                     : 'bg-white/5 text-white/50 hover:bg-neon-purple hover:text-white'
                                     }`}
-                                title="Copiar prompt para Veo"
+                                title="Copiar prompt para IA video generators"
                             >
                                 {copiedId === seg.id ? <Check size={14} /> : <Copy size={14} />}
                             </button>
