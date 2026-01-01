@@ -419,26 +419,26 @@ function App() {
               <Waveform />
             </div>
           </div>
+
+          {/* Mobile: Collapsible Kues Bar (below waveform) */}
+          <button
+            onClick={() => setShowMobileDrawer(true)}
+            className="md:hidden w-full py-3 bg-cyber-gray border-t border-neon-purple/30 flex items-center justify-center gap-2 text-neon-purple font-bold active:bg-neon-purple/10 transition-colors shrink-0"
+          >
+            <ChevronUp size={18} />
+            KUES
+            {segments.length > 0 && (
+              <span className="bg-neon-purple/20 px-2 py-0.5 rounded-full text-sm">
+                {segments.length}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Sidebar - Desktop only */}
         <div className="hidden md:flex w-80 h-full border-r border-neon-purple/20 bg-cyber-gray overflow-hidden order-1 flex-col z-10 shadow-2xl">
           <SegmentList />
         </div>
-
-        {/* Mobile: Collapsible Kues Bar (below waveform) */}
-        <button
-          onClick={() => setShowMobileDrawer(true)}
-          className="md:hidden w-full py-3 bg-cyber-gray border-t border-neon-purple/30 flex items-center justify-center gap-2 text-neon-purple font-bold active:bg-neon-purple/10 transition-colors"
-        >
-          <ChevronUp size={18} />
-          KUES
-          {segments.length > 0 && (
-            <span className="bg-neon-purple/20 px-2 py-0.5 rounded-full text-sm">
-              {segments.length}
-            </span>
-          )}
-        </button>
 
         {/* Mobile Drawer */}
         <MobileDrawer
