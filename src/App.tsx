@@ -8,7 +8,7 @@ import { db } from './db';
 import { VideoMonitor } from './components/Player/VideoMonitor';
 import { StoryboardPlayer } from './components/Player/StoryboardPlayer';
 import { Waveform } from './components/Timeline/Waveform';
-import { KueTimeline } from './components/Editor/KueTimeline';
+import { KueOverlay } from './components/Editor/KueOverlay';
 import { SegmentList } from './components/Editor/SegmentList';
 import { Toast } from './components/UI/Toast';
 import { ExportModal } from './components/UI/ExportModal';
@@ -427,10 +427,10 @@ function App() {
           )}
 
           <Waveform />
-        </div>
 
-        {/* KUE TIMELINE - Always visible */}
-        <KueTimeline />
+          {/* KUE OVERLAY - Rendered on top of waveform */}
+          <KueOverlay />
+        </div>
 
         {/* EXPANDED SEGMENT LIST (optional) */}
         {showMobileDrawer && (
