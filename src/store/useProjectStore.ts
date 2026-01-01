@@ -116,7 +116,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         const state = get();
         if (!state.isRecording || state.activeSegmentStart === null) return null;
 
-        // Swap start/end if user navigated backwards
+        // Determine start and end (swap if user went backwards)
         let start = state.activeSegmentStart;
         let end = endTime;
         if (start > end) {
@@ -124,6 +124,26 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         }
 
         // Validate minimum duration (0.1s to avoid accidental taps)
+        if (end - start < 0.1) return null;
+
+        // SNAP INTELIGENTE: Ajustar si hay overlap con Kues existentes
+        const existingSegments = state.segments;
+
+        // Find if we're overlapping with any existing segment
+        for (const seg of existingSegments) {
+            // Si el nuevo empieza antes que uno existente y termina después de su inicio
+            if (start < seg.start && end > seg.start) {
+                // Snap: termina donde empieza el existente
+                end = seg.start;
+            }
+            // Si el nuevo termina después que uno existente y empieza antes de su fin
+            if (end > seg.end && start < seg.end) {
+                // Snap: empieza donde termina el existente
+                start = seg.end;
+            }
+        }
+
+        // Re-validate after snap
         if (end - start < 0.1) return null;
 
         // Haptic feedback
@@ -137,10 +157,15 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
             color: '#8b5cf6'
         };
 
+        // ENCADENAMIENTO INTELIGENTE:
+        // Si el usuario avanzó en el tiempo, encadenar al siguiente
+        // Si retrocedió, parar y dejar elegir
+        const wentForward = endTime >= state.activeSegmentStart;
+
         set((s) => ({
             segments: [...s.segments, newSegment].sort((a, b) => a.start - b.start),
-            isRecording: false, // Stop recording - let user decide when to start next
-            activeSegmentStart: null
+            isRecording: wentForward, // Continúa grabando si fue hacia adelante
+            activeSegmentStart: wentForward ? end : null // Encadena desde el final
         }));
 
         return newSegment;
