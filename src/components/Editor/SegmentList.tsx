@@ -222,7 +222,6 @@ export const SegmentList = memo(() => {
                             />
 
                             <input
-                                id={`note-${seg.id}`}
                                 name={`note-${seg.id}`}
                                 value={seg.note}
                                 onChange={(e) => updateSegment(seg.id, { note: e.target.value })}
