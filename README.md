@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.1-8b5cf6?style=for-the-badge" alt="Version" />
+  <img src="https://img.shields.io/badge/version-1.0.2-8b5cf6?style=for-the-badge" alt="Version" />
   <img src="https://img.shields.io/badge/PWA-Ready-10b981?style=for-the-badge" alt="PWA Ready" />
   <img src="https://img.shields.io/badge/AI-Optimized-f59e0b?style=for-the-badge" alt="AI Ready" />
 </p>

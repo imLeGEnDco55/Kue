@@ -38,9 +38,13 @@ export const SegmentList = () => {
         if (active && activeSegmentId !== active.id) {
             setActiveSegmentId(active.id);
 
-            const el = document.getElementById(`seg-${active.id}`);
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Use local ref instead of global getElementById to avoid conflicts between 
+            // the desktop sidebar and mobile drawer instances.
+            if (listRef.current) {
+                const el = listRef.current.querySelector(`[data-seg-id="${active.id}"]`);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
             }
         }
     }, [currentTime, segments, activeSegmentId, setActiveSegmentId]);
@@ -100,7 +104,7 @@ export const SegmentList = () => {
                 {segments.map((seg, idx) => (
                     <div
                         key={seg.id}
-                        id={`seg-${seg.id}`}
+                        data-seg-id={seg.id}
                         className={`
                             group rounded-xl border-2 transition-all overflow-hidden
                             ${activeSegmentId === seg.id
