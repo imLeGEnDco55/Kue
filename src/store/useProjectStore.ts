@@ -25,6 +25,7 @@ interface ProjectState {
     addSegment: (segment: Segment) => void;
     updateSegment: (id: string, updates: Partial<Segment>) => void;
     deleteSegment: (id: string) => void;
+    loadSegments: (segments: Segment[]) => void;
 }
 
 export const useProjectStore = create<ProjectState>((set) => ({
@@ -50,4 +51,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
     deleteSegment: (id) => set((state) => ({
         segments: state.segments.filter((s) => s.id !== id)
     })),
+
+    loadSegments: (segments) => set({ segments }),
+
 }));
