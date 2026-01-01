@@ -188,7 +188,7 @@ function App() {
 
         {/* Logo */}
         <img
-          src="/logo.png"
+          src="./logo.png"
           alt="KueStudio"
           className="w-24 h-24 mb-4 drop-shadow-[0_0_30px_rgba(139,92,246,0.5)]"
         />
