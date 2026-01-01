@@ -116,23 +116,31 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         const state = get();
         if (!state.isRecording || state.activeSegmentStart === null) return null;
 
+        // Swap start/end if user navigated backwards
+        let start = state.activeSegmentStart;
+        let end = endTime;
+        if (start > end) {
+            [start, end] = [end, start];
+        }
+
         // Validate minimum duration (0.1s to avoid accidental taps)
-        if (endTime - state.activeSegmentStart < 0.1) return null;
+        if (end - start < 0.1) return null;
 
         // Haptic feedback
         if (navigator.vibrate) navigator.vibrate(40);
 
         const newSegment: Segment = {
             id: crypto.randomUUID(),
-            start: state.activeSegmentStart,
-            end: endTime,
+            start: start,
+            end: end,
             note: '',
             color: '#8b5cf6'
         };
 
         set((s) => ({
             segments: [...s.segments, newSegment].sort((a, b) => a.start - b.start),
-            activeSegmentStart: endTime // Chain to next segment
+            isRecording: false, // Stop recording - let user decide when to start next
+            activeSegmentStart: null
         }));
 
         return newSegment;
