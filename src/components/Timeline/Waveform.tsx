@@ -50,8 +50,16 @@ export const Waveform = memo(() => {
 
         ws.on('ready', () => setIsReady(true));
         ws.on('interaction', (newTime) => setCurrentTime(newTime));
-        // Critical: Update store time during playback
-        ws.on('audioprocess', (t) => setCurrentTime(t));
+
+        // Throttled time update during playback (~10fps is enough for UI)
+        let lastUpdate = 0;
+        ws.on('audioprocess', (t) => {
+            const now = Date.now();
+            if (now - lastUpdate > 100) { // Max 10 updates per second
+                setCurrentTime(t);
+                lastUpdate = now;
+            }
+        });
 
         ws.on('dblclick', (relX: number) => {
             const duration = ws.getDuration();

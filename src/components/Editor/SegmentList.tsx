@@ -17,7 +17,6 @@ const PRESET_COLORS = [
 
 export const SegmentList = memo(() => {
     const segments = useProjectStore(state => state.segments);
-    const currentTime = useProjectStore(state => state.currentTime);
     const activeSegmentId = useProjectStore(state => state.activeSegmentId);
     const isPlaying = useProjectStore(state => state.isPlaying);
 
@@ -32,21 +31,29 @@ export const SegmentList = memo(() => {
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const fileInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
-    // Auto-highlight and scroll to active segment
+    // Auto-highlight and scroll to active segment (optimized: polling instead of reactive)
     useEffect(() => {
-        const active = segments.find(s => currentTime >= s.start && currentTime < s.end);
-        if (active && activeSegmentId !== active.id) {
-            setActiveSegmentId(active.id);
+        if (!isPlaying) return;
 
-            // AUTO-SCROLL: Solo cuando está sonando (isPlaying).
-            if (listRef.current && isPlaying) {
-                const el = listRef.current.querySelector(`[data-seg-id="${active.id}"]`);
-                if (el) {
-                    el.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+        const interval = setInterval(() => {
+            const { currentTime, segments: segs, activeSegmentId: activeId } = useProjectStore.getState();
+            const active = segs.find(s => currentTime >= s.start && currentTime < s.end);
+
+            if (active && activeId !== active.id) {
+                setActiveSegmentId(active.id);
+
+                // AUTO-SCROLL during playback
+                if (listRef.current) {
+                    const el = listRef.current.querySelector(`[data-seg-id="${active.id}"]`);
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+                    }
                 }
             }
-        }
-    }, [currentTime, segments, activeSegmentId, setActiveSegmentId, isPlaying]);
+        }, 100); // Check every 100ms
+
+        return () => clearInterval(interval);
+    }, [isPlaying, setActiveSegmentId]);
 
     // Jump to time
     const handleJumpTo = (time: number) => {
