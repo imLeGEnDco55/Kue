@@ -12,6 +12,7 @@
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "@wavesurfer/react": "^1.0.12",
     "clsx": "^2.1.1",
     "dexie": "^4.2.1",
     "dexie-react-hooks": "^4.2.0",

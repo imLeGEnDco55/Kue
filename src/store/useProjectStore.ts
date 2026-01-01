@@ -6,9 +6,11 @@ export interface Segment {
     end: number;
     note: string;
     color?: string;
+    thumbnail?: string; // Base64 data URL of video frame at start time
 }
 
 interface ProjectState {
+    // Media State
     videoUrl: string | null;
     isPlaying: boolean;
     currentTime: number;
@@ -16,33 +18,69 @@ interface ProjectState {
     zoom: number;
     segments: Segment[];
 
+    // Recording Mode (from legacy)
+    isRecording: boolean;
+    activeSegmentStart: number | null;
+
+    // BPM Detection (from legacy)
+    bpm: number;
+
+    // UI State
+    activeSegmentId: string | null;
+    toastMessage: string | null;
+
     // Actions
     setVideoUrl: (url: string) => void;
     setIsPlaying: (isPlaying: boolean) => void;
     setCurrentTime: (time: number) => void;
     setDuration: (duration: number) => void;
     setZoom: (zoom: number) => void;
+    setBpm: (bpm: number) => void;
+
+    // Segment Actions
     addSegment: (segment: Segment) => void;
     updateSegment: (id: string, updates: Partial<Segment>) => void;
     deleteSegment: (id: string) => void;
     loadSegments: (segments: Segment[]) => void;
+    undoLastSegment: () => Segment | null;
+
+    // Recording Actions (from legacy)
+    startRecording: (startTime: number) => void;
+    finishRecording: (endTime: number) => Segment | null;
+    cancelRecording: () => void;
+
+    // UI Actions
+    setActiveSegmentId: (id: string | null) => void;
+    showToast: (message: string) => void;
+    clearToast: () => void;
 }
 
-export const useProjectStore = create<ProjectState>((set) => ({
+export const useProjectStore = create<ProjectState>((set, get) => ({
+    // Initial State
     videoUrl: null,
     isPlaying: false,
     currentTime: 0,
     duration: 0,
     zoom: 10,
     segments: [],
+    isRecording: false,
+    activeSegmentStart: null,
+    bpm: 0,
+    activeSegmentId: null,
+    toastMessage: null,
 
+    // Basic Setters
     setVideoUrl: (url) => set({ videoUrl: url }),
     setIsPlaying: (isPlaying) => set({ isPlaying }),
     setCurrentTime: (time) => set({ currentTime: time }),
     setDuration: (duration) => set({ duration }),
     setZoom: (zoom) => set({ zoom }),
+    setBpm: (bpm) => set({ bpm }),
 
-    addSegment: (segment) => set((state) => ({ segments: [...state.segments, segment] })),
+    // Segment CRUD
+    addSegment: (segment) => set((state) => ({
+        segments: [...state.segments, segment].sort((a, b) => a.start - b.start)
+    })),
 
     updateSegment: (id, updates) => set((state) => ({
         segments: state.segments.map((s) => (s.id === id ? { ...s, ...updates } : s))
@@ -52,6 +90,65 @@ export const useProjectStore = create<ProjectState>((set) => ({
         segments: state.segments.filter((s) => s.id !== id)
     })),
 
-    loadSegments: (segments) => set({ segments }),
+    loadSegments: (segments) => set({ segments: segments.sort((a, b) => a.start - b.start) }),
 
+    undoLastSegment: () => {
+        const state = get();
+        if (state.segments.length === 0) return null;
+
+        const lastSegment = state.segments[state.segments.length - 1];
+        set((s) => ({
+            segments: s.segments.slice(0, -1),
+            // If recording, move start back to the removed segment's start
+            activeSegmentStart: s.isRecording ? lastSegment.start : s.activeSegmentStart
+        }));
+        return lastSegment;
+    },
+
+    // Recording Mode (legacy behavior)
+    startRecording: (startTime) => {
+        // Haptic feedback
+        if (navigator.vibrate) navigator.vibrate(40);
+        set({ isRecording: true, activeSegmentStart: startTime });
+    },
+
+    finishRecording: (endTime) => {
+        const state = get();
+        if (!state.isRecording || state.activeSegmentStart === null) return null;
+
+        // Validate minimum duration (0.1s to avoid accidental taps)
+        if (endTime - state.activeSegmentStart < 0.1) return null;
+
+        // Haptic feedback
+        if (navigator.vibrate) navigator.vibrate(40);
+
+        const newSegment: Segment = {
+            id: crypto.randomUUID(),
+            start: state.activeSegmentStart,
+            end: endTime,
+            note: '',
+            color: '#8b5cf6'
+        };
+
+        set((s) => ({
+            segments: [...s.segments, newSegment].sort((a, b) => a.start - b.start),
+            activeSegmentStart: endTime // Chain to next segment
+        }));
+
+        return newSegment;
+    },
+
+    cancelRecording: () => {
+        set({ isRecording: false, activeSegmentStart: null });
+    },
+
+    // UI Actions
+    setActiveSegmentId: (id) => set({ activeSegmentId: id }),
+
+    showToast: (message) => {
+        set({ toastMessage: message });
+        setTimeout(() => set({ toastMessage: null }), 2500);
+    },
+
+    clearToast: () => set({ toastMessage: null }),
 }));

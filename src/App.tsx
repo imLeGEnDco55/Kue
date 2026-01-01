@@ -1,29 +1,38 @@
 import { useRef, useState, useEffect } from 'react';
-import { Play, Pause, ZoomIn, ZoomOut, Scissors, ArrowLeft, Plus, Trash2, Calendar, Music } from 'lucide-react';
-import { useLiveQuery } from 'dexie-react-hooks'; // <--- MAGIA PARA LA DB
-import { db } from './db'; // <--- TU DB
+import {
+  Play, Pause, ZoomIn, ZoomOut, Scissors, ArrowLeft, Plus, Trash2,
+  Calendar, Music, Download, Undo2, Zap
+} from 'lucide-react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from './db';
 import { VideoMonitor } from './components/Player/VideoMonitor';
+import { StoryboardPlayer } from './components/Player/StoryboardPlayer';
 import { Waveform } from './components/Timeline/Waveform';
 import { SegmentList } from './components/Editor/SegmentList';
+import { Toast } from './components/UI/Toast';
 import { useProjectStore } from './store/useProjectStore';
+import { analyzeAudioBlob, formatTime } from './utils/audioAnalysis';
 
 function App() {
   const [currentView, setCurrentView] = useState<'HOME' | 'EDITOR'>('HOME');
   const [projectId, setProjectId] = useState<string | null>(null);
+  const [projectName, setProjectName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Store de Zustand
   const {
     setVideoUrl, isPlaying, setIsPlaying, zoom, setZoom,
-    addSegment, currentTime, segments, loadSegments
+    currentTime, duration, segments, loadSegments,
+    isRecording, activeSegmentStart, startRecording, finishRecording, cancelRecording,
+    bpm, setBpm, undoLastSegment, showToast
   } = useProjectStore();
 
-  // --- QUERY DE PROYECTOS (Automático) ---
+  // Query de proyectos
   const projects = useLiveQuery(() => db.projects.orderBy('createdAt').reverse().toArray());
 
-  // Auto-Guardado: Cada que cambian los segmentos, actualizamos la DB
+  // Auto-guardado cuando cambian los segmentos
   useEffect(() => {
-    if (projectId && segments.length > 0) {
+    if (projectId && segments.length >= 0) {
       db.projects.update(projectId, {
         segments,
         updatedAt: Date.now()
@@ -31,20 +40,19 @@ function App() {
     }
   }, [segments, projectId]);
 
-  // --- ACCIONES ---
-
-  // 1. Crear Nuevo Proyecto
+  // --- CREAR NUEVO PROYECTO ---
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const newId = crypto.randomUUID();
     const url = URL.createObjectURL(file);
+    const name = file.name.split('.')[0];
 
     // Guardar en DB
     await db.projects.add({
       id: newId,
-      name: file.name.split('.')[0],
+      name,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       audioBlob: file,
@@ -52,23 +60,54 @@ function App() {
       segments: []
     });
 
-    // Cargar en Memoria
+    // Cargar en memoria
     setProjectId(newId);
+    setProjectName(name);
     setVideoUrl(url);
-    loadSegments([]); // Limpiar segmentos anteriores
+    loadSegments([]);
+    cancelRecording();
     setCurrentView('EDITOR');
+
+    // Analizar audio para BPM
+    try {
+      const { bpm: detectedBpm } = await analyzeAudioBlob(file);
+      if (detectedBpm > 0) {
+        setBpm(detectedBpm);
+        await db.projects.update(newId, { bpm: detectedBpm });
+        showToast(`BPM detectado: ${detectedBpm}`);
+      }
+    } catch (err) {
+      console.warn('Error analyzing audio:', err);
+    }
   };
 
-  // 2. Abrir Proyecto Existente
-  const openProject = (p: any) => {
+  // --- ABRIR PROYECTO EXISTENTE ---
+  const openProject = async (p: any) => {
     const url = URL.createObjectURL(p.audioBlob);
     setProjectId(p.id);
+    setProjectName(p.name);
     setVideoUrl(url);
     loadSegments(p.segments || []);
+    setBpm(p.bpm || 0);
+    cancelRecording();
     setCurrentView('EDITOR');
+
+    // Si no tiene BPM, analizamos
+    if (!p.bpm) {
+      try {
+        const { bpm: detectedBpm } = await analyzeAudioBlob(p.audioBlob);
+        if (detectedBpm > 0) {
+          setBpm(detectedBpm);
+          await db.projects.update(p.id, { bpm: detectedBpm });
+          showToast(`BPM detectado: ${detectedBpm}`);
+        }
+      } catch (err) {
+        console.warn('Error analyzing audio:', err);
+      }
+    }
   };
 
-  // 3. Borrar Proyecto
+  // --- BORRAR PROYECTO ---
   const deleteProject = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm('¿Seguro que quieres borrar este proyecto?')) {
@@ -76,14 +115,82 @@ function App() {
     }
   };
 
-  const handleCut = () => {
-    addSegment({
-      id: crypto.randomUUID(),
-      start: currentTime,
-      end: currentTime + 5,
-      note: 'Corte en ' + currentTime.toFixed(1) + 's',
-      color: '#8b5cf6'
-    });
+  // --- LÓGICA DE CORTE (LEGACY + INTERMEDIATE CUTS) ---
+  const handleMark = () => {
+    // Check if we're inside an existing segment (for splitting)
+    const existingSegment = segments.find(s =>
+      currentTime > s.start + 0.1 && currentTime < s.end - 0.1
+    );
+
+    if (existingSegment) {
+      // SPLIT MODE: Divide the existing segment into two
+      const { updateSegment, addSegment } = useProjectStore.getState();
+
+      // Update the original segment to end at current time
+      updateSegment(existingSegment.id, { end: currentTime });
+
+      // Create a new segment from current time to original end
+      const newSegment = {
+        id: crypto.randomUUID(),
+        start: currentTime,
+        end: existingSegment.end,
+        note: '',
+        color: '#8b5cf6'
+      };
+      addSegment(newSegment);
+
+      showToast('Segmento dividido');
+      if (navigator.vibrate) navigator.vibrate([40, 50, 40]); // Double vibration for split
+      return;
+    }
+
+    // NORMAL MODE: Recording chain
+    if (!isRecording) {
+      // INICIAR grabación
+      startRecording(currentTime);
+      if (!isPlaying) setIsPlaying(true); // Auto-play
+    } else {
+      // CORTAR (cerrar segmento actual y encadenar al siguiente)
+      const newSeg = finishRecording(currentTime);
+      if (newSeg) {
+        showToast('¡Corte guardado!');
+        // Scroll al nuevo segmento
+        setTimeout(() => {
+          const el = document.getElementById(`seg-${newSeg.id}`);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 50);
+      }
+    }
+  };
+
+  // --- DESHACER ---
+  const handleUndo = () => {
+    const removed = undoLastSegment();
+    if (removed) {
+      showToast('Deshecho');
+    }
+  };
+
+  // --- EXPORTAR JSON ---
+  const handleExportJSON = async () => {
+    if (!projectId) return;
+    const project = await db.projects.get(projectId);
+    if (!project) return;
+
+    const data = {
+      name: project.name,
+      bpm: project.bpm || 0,
+      source: (project.audioBlob as File)?.name || 'unknown',
+      segments: project.segments,
+      exportedAt: new Date().toISOString()
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${project.name}_kue.json`;
+    a.click();
+    showToast('JSON exportado');
   };
 
   // --- VISTA: HOME ---
@@ -95,22 +202,26 @@ function App() {
         <h1 className="text-4xl md:text-6xl font-bold tracking-[0.2em] mb-2 text-transparent bg-clip-text bg-gradient-to-r from-white to-neon-purple">
           KUE<span className="font-light text-white">STUDIO</span>
         </h1>
-        <p className="text-white/40 font-mono text-sm mb-12 tracking-widest">V9 DB EDITION</p>
+        <p className="text-white/40 font-mono text-sm mb-12 tracking-widest">V9 HYBRID EDITION</p>
 
-        {/* LISTA DE PROYECTOS REAL */}
+        {/* LISTA DE PROYECTOS */}
         <div className="w-full max-w-2xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8 max-h-[50vh] overflow-y-auto px-4 scrollbar-thin scrollbar-thumb-neon-purple/20">
           {!projects || projects.length === 0 ? (
             <div className="col-span-full text-center text-white/30 py-10 border border-dashed border-white/10 rounded-xl">
-              No hay proyectos. Crea uno nuevo 👇
+              <div className="text-4xl mb-3">💿</div>
+              Sin proyectos. Crea uno nuevo 👇
             </div>
           ) : (
             projects.map(p => (
               <div
                 key={p.id}
                 onClick={() => openProject(p)}
-                className="group bg-white/5 border border-white/10 p-4 rounded-xl cursor-pointer hover:bg-white/10 hover:border-neon-purple/50 transition-all relative"
+                className="group bg-white/5 border border-white/10 p-4 rounded-xl cursor-pointer hover:bg-white/10 hover:border-neon-purple/50 transition-all relative overflow-hidden"
               >
-                <div className="flex justify-between items-start mb-4">
+                {/* Accent bar */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-neon-purple to-pink-500 opacity-70" />
+
+                <div className="flex justify-between items-start mb-4 mt-1">
                   <div className="p-3 bg-black/40 rounded-lg text-neon-purple">
                     <Music size={20} />
                   </div>
@@ -126,8 +237,15 @@ function App() {
                   <Calendar size={12} />
                   {new Date(p.createdAt).toLocaleDateString()}
                 </div>
-                <div className="absolute bottom-4 right-4 text-xs font-mono bg-neon-purple/20 text-neon-purple px-2 py-1 rounded">
-                  {p.segments?.length || 0} cortes
+                <div className="absolute bottom-4 right-4 flex gap-2">
+                  {p.bpm > 0 && (
+                    <span className="text-xs font-mono bg-amber-500/20 text-amber-400 px-2 py-1 rounded">
+                      {p.bpm} BPM
+                    </span>
+                  )}
+                  <span className="text-xs font-mono bg-neon-purple/20 text-neon-purple px-2 py-1 rounded">
+                    {p.segments?.length || 0} cortes
+                  </span>
                 </div>
               </div>
             ))
@@ -146,6 +264,8 @@ function App() {
             NUEVO PROYECTO
           </div>
         </button>
+
+        <Toast />
       </div>
     );
   }
@@ -153,60 +273,150 @@ function App() {
   // --- VISTA: EDITOR ---
   return (
     <div className="h-screen bg-neon-dark text-cyber-text flex flex-col overflow-hidden font-sans">
+      {/* Header */}
       <header className="h-14 border-b border-neon-purple/20 flex items-center px-4 bg-black/60 backdrop-blur justify-between shrink-0 z-20">
         <div className="flex items-center gap-4">
-          <button onClick={() => setCurrentView('HOME')} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+          <button
+            onClick={() => { cancelRecording(); setCurrentView('HOME'); }}
+            className="p-2 hover:bg-white/10 rounded-full transition-colors"
+          >
             <ArrowLeft size={20} className="text-white" />
           </button>
-          <h1 className="text-lg font-bold tracking-[0.2em] text-white hidden md:block opacity-50">
-            PROYECTO ACTIVO
-          </h1>
+          <input
+            type="text"
+            value={projectName}
+            onChange={(e) => {
+              setProjectName(e.target.value);
+              if (projectId) {
+                db.projects.update(projectId, { name: e.target.value });
+              }
+            }}
+            className="bg-transparent border-none text-white font-bold text-lg outline-none w-40 md:w-60"
+          />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {/* BPM Badge */}
+          {bpm > 0 && (
+            <div className="px-3 py-1 bg-amber-500/10 text-amber-400 text-xs border border-amber-500/20 rounded font-mono">
+              {bpm} BPM
+            </div>
+          )}
+          {/* Export JSON */}
+          <button
+            onClick={handleExportJSON}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-white"
+            title="Exportar JSON"
+          >
+            <Download size={18} />
+          </button>
+          {/* Autosave indicator */}
           <div className="px-3 py-1 bg-green-500/10 text-green-400 text-xs border border-green-500/20 rounded flex items-center gap-2">
             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-            AUTOGUARDADO
+            AUTO
           </div>
         </div>
       </header>
 
       <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+        {/* Main Content Area */}
         <div className="flex-1 flex flex-col relative bg-black order-1 md:order-2">
+          {/* Storyboard Player - Shows uploaded images synced with audio */}
           <div className="flex-1 flex items-center justify-center p-2 md:p-8 overflow-hidden">
-            <div className="w-full max-w-5xl aspect-video shadow-2xl bg-black border border-white/5 relative group">
-              <VideoMonitor />
+            <div className="w-full max-w-5xl aspect-video shadow-2xl bg-black border border-neon-purple/30 rounded-lg overflow-hidden relative group">
+              <StoryboardPlayer />
+              {/* Hidden VideoMonitor for audio playback */}
+              <div className="hidden">
+                <VideoMonitor />
+              </div>
             </div>
           </div>
 
-          <div className="h-16 border-t border-white/10 bg-black/80 flex items-center justify-center gap-8 shrink-0">
+          {/* Control Bar */}
+          <div className="h-20 border-t border-white/10 bg-black/80 flex items-center justify-center gap-4 md:gap-8 shrink-0 px-4">
+            {/* Time Display */}
+            <div className="hidden md:flex font-mono text-sm text-white/60">
+              <span className="text-white font-bold">{formatTime(currentTime)}</span>
+              <span className="mx-1">/</span>
+              <span>{formatTime(duration)}</span>
+            </div>
+
+            {/* Play/Pause */}
             <button
               onClick={() => setIsPlaying(!isPlaying)}
-              className="p-4 rounded-full bg-white/5 hover:bg-neon-purple text-white transition-all hover:scale-110 active:scale-95 shadow-lg"
+              className="p-4 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all hover:scale-110 active:scale-95 shadow-lg"
             >
               {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}
             </button>
-            <button onClick={handleCut} className="flex flex-col items-center gap-1 group">
-              <div className="p-3 border-2 border-neon-purple rounded-xl text-neon-purple group-hover:bg-neon-purple group-hover:text-black group-active:scale-95 transition-all shadow-[0_0_15px_rgba(139,92,246,0.3)]">
-                <Scissors size={24} />
-              </div>
+
+            {/* MARK BUTTON - The Star! */}
+            <button
+              onClick={handleMark}
+              className={`
+                flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-lg transition-all
+                active:scale-95 shadow-lg
+                ${isRecording
+                  ? 'bg-gradient-to-r from-red-500 to-red-700 text-white animate-pulse shadow-red-500/30'
+                  : 'bg-gradient-to-r from-neon-purple to-pink-600 text-white shadow-neon-purple/30 hover:scale-105'
+                }
+              `}
+            >
+              {isRecording ? (
+                <>
+                  <Scissors size={20} />
+                  CORTAR
+                </>
+              ) : (
+                <>
+                  <Zap size={20} />
+                  INICIAR
+                </>
+              )}
+            </button>
+
+            {/* Undo */}
+            <button
+              onClick={handleUndo}
+              disabled={segments.length === 0}
+              className="p-3 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Deshacer"
+            >
+              <Undo2 size={20} />
             </button>
           </div>
 
+          {/* Waveform Timeline */}
           <div className="h-32 md:h-48 border-t border-neon-purple/30 bg-[#111115] relative flex flex-col shrink-0">
+            {/* Zoom Controls */}
             <div className="absolute top-2 right-2 z-10 flex gap-1 bg-black/60 p-1 rounded backdrop-blur border border-white/10">
-              <button onClick={() => setZoom(Math.max(5, zoom - 5))} className="p-1 hover:text-neon-purple"><ZoomOut size={14} /></button>
-              <button onClick={() => setZoom(Math.min(200, zoom + 5))} className="p-1 hover:text-neon-purple"><ZoomIn size={14} /></button>
+              <button onClick={() => setZoom(Math.max(5, zoom - 5))} className="p-1 hover:text-neon-purple">
+                <ZoomOut size={14} />
+              </button>
+              <button onClick={() => setZoom(Math.min(200, zoom + 5))} className="p-1 hover:text-neon-purple">
+                <ZoomIn size={14} />
+              </button>
             </div>
+
+            {/* Ghost Segment Indicator */}
+            {isRecording && activeSegmentStart !== null && (
+              <div className="absolute top-2 left-2 z-10 flex items-center gap-2 bg-red-500/20 text-red-400 px-3 py-1 rounded-full text-xs font-mono border border-red-500/30 animate-pulse">
+                <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                REC: {formatTime(currentTime - activeSegmentStart)}
+              </div>
+            )}
+
             <div className="flex-1 relative">
               <Waveform />
             </div>
           </div>
         </div>
 
+        {/* Sidebar - Segment List */}
         <div className="w-full md:w-80 h-1/3 md:h-full border-t md:border-t-0 md:border-r border-neon-purple/20 bg-cyber-gray overflow-hidden order-2 md:order-1 flex flex-col z-10 shadow-2xl">
           <SegmentList />
         </div>
       </main>
+
+      <Toast />
     </div>
   );
 }
