@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 import {
   Play, Pause, ZoomIn, ZoomOut, Scissors, ArrowLeft, Plus, Trash2,
-  Calendar, Music, Download, Undo2, Zap
+  Calendar, Music, Download, Undo2, Zap, ChevronUp
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './db';
@@ -11,7 +11,7 @@ import { Waveform } from './components/Timeline/Waveform';
 import { SegmentList } from './components/Editor/SegmentList';
 import { Toast } from './components/UI/Toast';
 import { ExportModal } from './components/UI/ExportModal';
-import { MobileDrawer, MobileDrawerButton } from './components/UI/MobileDrawer';
+import { MobileDrawer } from './components/UI/MobileDrawer';
 import { useProjectStore } from './store/useProjectStore';
 import { analyzeAudioBlob, formatTime } from './utils/audioAnalysis';
 
@@ -426,12 +426,19 @@ function App() {
           <SegmentList />
         </div>
 
-        {/* Mobile Drawer Button */}
-        <MobileDrawerButton
+        {/* Mobile: Collapsible Kues Bar (below waveform) */}
+        <button
           onClick={() => setShowMobileDrawer(true)}
-          label="Kues"
-          count={segments.length}
-        />
+          className="md:hidden w-full py-3 bg-cyber-gray border-t border-neon-purple/30 flex items-center justify-center gap-2 text-neon-purple font-bold active:bg-neon-purple/10 transition-colors"
+        >
+          <ChevronUp size={18} />
+          KUES
+          {segments.length > 0 && (
+            <span className="bg-neon-purple/20 px-2 py-0.5 rounded-full text-sm">
+              {segments.length}
+            </span>
+          )}
+        </button>
 
         {/* Mobile Drawer */}
         <MobileDrawer

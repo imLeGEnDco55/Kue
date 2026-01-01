@@ -203,4 +203,14 @@ Al proponer cambios, siempre pensar:
 
 ---
 
+## 🐛 Bugs Conocidos (Desktop)
+
+### Flickering en Zoom (Desktop Only)
+- **Descripción**: Al usar los controles de zoom (+/-) en desktop, el sidebar de Kues puede mostrar un efecto de "parpadeo" o redimensionado momentáneo.
+- **Impacto**: Solo visual, no afecta funcionalidad.
+- **Plataforma afectada**: Solo desktop. En móvil funciona perfecto.
+- **Prioridad**: Baja (la app está optimizada para móvil).
+
+---
+
 *Última actualización: Enero 2026 - v1.0.1*
