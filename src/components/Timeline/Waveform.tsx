@@ -1,15 +1,17 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import { useProjectStore } from '../../store/useProjectStore';
 
 export const Waveform = () => {
     const containerRef = useRef<HTMLDivElement>(null);
     const wavesurfer = useRef<WaveSurfer | null>(null);
+    const [isReady, setIsReady] = useState(false);
     const { videoUrl, isPlaying, currentTime, zoom, setCurrentTime } = useProjectStore();
 
     useEffect(() => {
         if (!containerRef.current || !videoUrl) return;
 
+        setIsReady(false);
         wavesurfer.current = WaveSurfer.create({
             container: containerRef.current,
             waveColor: '#4c1d95', // violet-900 (darker)
@@ -19,13 +21,17 @@ export const Waveform = () => {
             barGap: 1,
             height: 100,
             normalize: true,
-            minPxPerSec: zoom,
+            minPxPerSec: zoom, // Initial zoom
             autoScroll: true,
             interact: true,
         });
 
         wavesurfer.current.load(videoUrl);
         wavesurfer.current.setVolume(0); // Mute waveform, video plays audio
+
+        wavesurfer.current.on('ready', () => {
+            setIsReady(true);
+        });
 
         wavesurfer.current.on('interaction', (newTime) => {
             setCurrentTime(newTime);
@@ -38,19 +44,24 @@ export const Waveform = () => {
 
         return () => {
             wavesurfer.current?.destroy();
+            setIsReady(false);
         }
     }, [videoUrl]);
 
     // Sync Zoom
     useEffect(() => {
-        if (wavesurfer.current) {
-            wavesurfer.current.zoom(zoom);
+        if (wavesurfer.current && isReady) {
+            try {
+                wavesurfer.current.zoom(zoom);
+            } catch (err) {
+                console.warn("Waveform zoom error:", err);
+            }
         }
-    }, [zoom]);
+    }, [zoom, isReady]);
 
     // Sync Playback State (Visuals only)
     useEffect(() => {
-        if (!wavesurfer.current) return;
+        if (!wavesurfer.current || !isReady) return;
         // We don't necessarily need to "play" the waveform if we just sync time?
         // But playing makes the cursor move smoothly.
         if (isPlaying) {
@@ -58,7 +69,7 @@ export const Waveform = () => {
         } else {
             wavesurfer.current.pause();
         }
-    }, [isPlaying]);
+    }, [isPlaying, isReady]);
 
     // Sync Time
     useEffect(() => {
