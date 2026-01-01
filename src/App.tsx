@@ -1,17 +1,17 @@
 import { useRef, useState, useEffect } from 'react';
 import {
-  Play, Pause, ZoomIn, ZoomOut, Scissors, ArrowLeft, Plus, Trash2,
-  Calendar, Music, Download, Undo2, Zap, ChevronUp
+  Play, Pause, ZoomIn, ZoomOut, ArrowLeft, Plus, Trash2,
+  Calendar, Music, Download, Undo2, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './db';
 import { VideoMonitor } from './components/Player/VideoMonitor';
 import { StoryboardPlayer } from './components/Player/StoryboardPlayer';
 import { Waveform } from './components/Timeline/Waveform';
+import { KueTimeline } from './components/Editor/KueTimeline';
 import { SegmentList } from './components/Editor/SegmentList';
 import { Toast } from './components/UI/Toast';
 import { ExportModal } from './components/UI/ExportModal';
-import { MobileDrawer } from './components/UI/MobileDrawer';
 import { useProjectStore } from './store/useProjectStore';
 import { analyzeAudioBlob, formatTime } from './utils/audioAnalysis';
 
@@ -328,126 +328,102 @@ function App() {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col relative bg-black order-1 md:order-2">
-          {/* Storyboard Player - Shows uploaded images synced with audio */}
-          <div className="flex-1 flex items-center justify-center p-2 md:p-8 overflow-hidden">
-            <div className="w-full max-w-5xl aspect-video shadow-2xl bg-black border border-neon-purple/30 rounded-lg overflow-hidden relative group">
-              <StoryboardPlayer />
-              {/* Hidden VideoMonitor for audio playback */}
-              <div className="hidden">
-                <VideoMonitor />
-              </div>
+      <main className="flex-1 flex flex-col overflow-hidden">
+        {/* TOP: Storyboard Player */}
+        <div className="flex-1 flex items-center justify-center p-2 md:p-4 bg-black overflow-hidden min-h-0">
+          <div className="w-full max-w-4xl aspect-video shadow-2xl bg-black border border-neon-purple/30 rounded-lg overflow-hidden relative group">
+            <StoryboardPlayer />
+            {/* Hidden VideoMonitor for audio playback */}
+            <div className="hidden">
+              <VideoMonitor />
             </div>
           </div>
+        </div>
 
-          {/* Control Bar */}
-          <div className="h-20 border-t border-white/10 bg-black/80 flex items-center justify-center gap-4 md:gap-8 shrink-0 px-4">
-            {/* Time Display */}
-            <div className="hidden md:flex font-mono text-sm text-white/60">
-              <span className="text-white font-bold">{formatTime(currentTime)}</span>
-              <span className="mx-1">/</span>
-              <span>{formatTime(duration)}</span>
-            </div>
-
-            {/* Play/Pause */}
-            <button
-              onClick={() => setIsPlaying(!isPlaying)}
-              className="p-4 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all hover:scale-110 active:scale-95 shadow-lg"
-            >
-              {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}
-            </button>
-
-            {/* MARK BUTTON - The Star! */}
-            <button
-              onClick={handleMark}
-              className={`
-                flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-lg transition-all
-                active:scale-95 shadow-lg
-                ${isRecording
-                  ? 'bg-linear-to-r from-red-500 to-red-700 text-white animate-pulse shadow-red-500/30'
-                  : 'bg-linear-to-r from-neon-purple to-pink-600 text-white shadow-neon-purple/30 hover:scale-105'
-                }
-              `}
-            >
-              {isRecording ? (
-                <>
-                  <Scissors size={20} />
-                  KUE
-                </>
-              ) : (
-                <>
-                  <Zap size={20} />
-                  GO!
-                </>
-              )}
-            </button>
-
-            {/* Undo */}
-            <button
-              onClick={handleUndo}
-              disabled={segments.length === 0}
-              className="p-3 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-              title="Deshacer"
-            >
-              <Undo2 size={20} />
-            </button>
+        {/* MIDDLE: Control Bar - Compact */}
+        <div className="h-16 border-t border-white/10 bg-black/80 flex items-center justify-center gap-3 md:gap-6 shrink-0 px-3">
+          {/* Time Display */}
+          <div className="font-mono text-xs md:text-sm text-white/60">
+            <span className="text-white font-bold">{formatTime(currentTime)}</span>
+            <span className="mx-1 hidden md:inline">/</span>
+            <span className="hidden md:inline">{formatTime(duration)}</span>
           </div>
 
-          {/* Waveform Timeline */}
-          <div className="h-32 md:h-48 border-t border-neon-purple/30 bg-[#111115] relative flex flex-col shrink-0">
-            {/* Zoom Controls */}
-            <div className="absolute top-2 right-2 z-10 flex gap-1 bg-black/60 p-1 rounded backdrop-blur border border-white/10">
-              <button onClick={() => setZoom(Math.max(5, zoom - 5))} className="p-1 hover:text-neon-purple">
-                <ZoomOut size={14} />
-              </button>
-              <button onClick={() => setZoom(Math.min(200, zoom + 5))} className="p-1 hover:text-neon-purple">
-                <ZoomIn size={14} />
-              </button>
-            </div>
-
-            {/* Ghost Segment Indicator */}
-            {isRecording && activeSegmentStart !== null && (
-              <div className="absolute top-2 left-2 z-10 flex items-center gap-2 bg-red-500/20 text-red-400 px-3 py-1 rounded-full text-xs font-mono border border-red-500/30 animate-pulse">
-                <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                REC: {formatTime(currentTime - activeSegmentStart)}
-              </div>
-            )}
-
-            <div className="flex-1 relative">
-              <Waveform />
-            </div>
-          </div>
-
-          {/* Mobile: Collapsible Kues Bar (below waveform) */}
+          {/* Play/Pause */}
           <button
-            onClick={() => setShowMobileDrawer(true)}
-            className="md:hidden w-full py-3 bg-cyber-gray border-t border-neon-purple/30 flex items-center justify-center gap-2 text-neon-purple font-bold active:bg-neon-purple/10 transition-colors shrink-0"
+            onClick={() => setIsPlaying(!isPlaying)}
+            className="p-3 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all hover:scale-110 active:scale-95 shadow-lg"
           >
-            <ChevronUp size={18} />
-            KUES
-            {segments.length > 0 && (
-              <span className="bg-neon-purple/20 px-2 py-0.5 rounded-full text-sm">
-                {segments.length}
-              </span>
-            )}
+            {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}
+          </button>
+
+          {/* MARK BUTTON */}
+          <button
+            onClick={handleMark}
+            className={`
+              flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-base transition-all
+              active:scale-95 shadow-lg
+              ${isRecording
+                ? 'bg-linear-to-r from-red-500 to-red-700 text-white animate-pulse shadow-red-500/30'
+                : 'bg-linear-to-r from-neon-purple to-pink-600 text-white shadow-neon-purple/30 hover:scale-105'
+              }
+            `}
+          >
+            {isRecording ? 'KUE' : 'GO!'}
+          </button>
+
+          {/* Undo */}
+          <button
+            onClick={handleUndo}
+            disabled={segments.length === 0}
+            className="p-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            title="Deshacer"
+          >
+            <Undo2 size={18} />
+          </button>
+
+          {/* Expand to full list */}
+          <button
+            onClick={() => setShowMobileDrawer(!showMobileDrawer)}
+            className="p-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-neon-purple transition-all"
+            title="Ver lista completa"
+          >
+            {showMobileDrawer ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
           </button>
         </div>
 
-        {/* Sidebar - Desktop only */}
-        <div className="hidden md:flex w-80 h-full border-r border-neon-purple/20 bg-cyber-gray overflow-hidden order-1 flex-col z-10 shadow-2xl">
-          <SegmentList />
+        {/* WAVEFORM */}
+        <div className="h-24 md:h-32 border-t border-neon-purple/30 bg-[#111115] relative shrink-0">
+          {/* Zoom Controls */}
+          <div className="absolute top-1 right-2 z-10 flex gap-1 bg-black/60 p-0.5 rounded backdrop-blur border border-white/10">
+            <button onClick={() => setZoom(Math.max(5, zoom - 5))} className="p-1 hover:text-neon-purple">
+              <ZoomOut size={12} />
+            </button>
+            <button onClick={() => setZoom(Math.min(200, zoom + 5))} className="p-1 hover:text-neon-purple">
+              <ZoomIn size={12} />
+            </button>
+          </div>
+
+          {/* REC Indicator */}
+          {isRecording && activeSegmentStart !== null && (
+            <div className="absolute top-1 left-2 z-10 flex items-center gap-1 bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full text-[10px] font-mono border border-red-500/30 animate-pulse">
+              <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+              REC
+            </div>
+          )}
+
+          <Waveform />
         </div>
 
-        {/* Mobile Drawer */}
-        <MobileDrawer
-          isOpen={showMobileDrawer}
-          onClose={() => setShowMobileDrawer(false)}
-          title={`KUES (${segments.length})`}
-        >
-          <SegmentList />
-        </MobileDrawer>
+        {/* KUE TIMELINE - Always visible */}
+        <KueTimeline />
+
+        {/* EXPANDED SEGMENT LIST (optional) */}
+        {showMobileDrawer && (
+          <div className="h-64 md:h-80 border-t border-neon-purple/30 bg-cyber-gray overflow-hidden shrink-0">
+            <SegmentList />
+          </div>
+        )}
       </main>
 
       <Toast />
