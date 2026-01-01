@@ -24,12 +24,25 @@ function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Store de Zustand
-  const {
-    setVideoUrl, isPlaying, setIsPlaying, zoom, setZoom,
-    currentTime, duration, segments, loadSegments,
-    isRecording, activeSegmentStart, startRecording, finishRecording, cancelRecording,
-    bpm, setBpm, undoLastSegment, showToast
-  } = useProjectStore();
+  const isPlaying = useProjectStore(state => state.isPlaying);
+  const zoom = useProjectStore(state => state.zoom);
+  const currentTime = useProjectStore(state => state.currentTime);
+  const duration = useProjectStore(state => state.duration);
+  const segments = useProjectStore(state => state.segments);
+  const isRecording = useProjectStore(state => state.isRecording);
+  const activeSegmentStart = useProjectStore(state => state.activeSegmentStart);
+  const bpm = useProjectStore(state => state.bpm);
+
+  const setVideoUrl = useProjectStore(state => state.setVideoUrl);
+  const setIsPlaying = useProjectStore(state => state.setIsPlaying);
+  const setZoom = useProjectStore(state => state.setZoom);
+  const loadSegments = useProjectStore(state => state.loadSegments);
+  const startRecording = useProjectStore(state => state.startRecording);
+  const finishRecording = useProjectStore(state => state.finishRecording);
+  const cancelRecording = useProjectStore(state => state.cancelRecording);
+  const setBpm = useProjectStore(state => state.setBpm);
+  const undoLastSegment = useProjectStore(state => state.undoLastSegment);
+  const showToast = useProjectStore(state => state.showToast);
 
   // Query de proyectos
   const projects = useLiveQuery(() => db.projects.orderBy('createdAt').reverse().toArray());
@@ -191,7 +204,7 @@ function App() {
         <h1 className="text-4xl md:text-6xl font-bold tracking-[0.2em] mb-2 text-transparent bg-clip-text bg-linear-to-r from-white to-neon-purple">
           KUE<span className="font-light text-white">STUDIO</span>
         </h1>
-        <p className="text-white/40 font-mono text-sm mb-12 tracking-widest">V1.0.4</p>
+        <p className="text-white/40 font-mono text-sm mb-12 tracking-widest">V1.0.1</p>
 
         {/* LISTA DE PROYECTOS */}
         <div className="w-full max-w-2xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8 max-h-[50vh] overflow-y-auto px-4 scrollbar-thin scrollbar-thumb-neon-purple/20">
@@ -242,7 +255,15 @@ function App() {
         </div>
 
         {/* Input Oculto */}
-        <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="video/*,audio/*" />
+        <input
+          id="audio-upload"
+          name="audio-upload"
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          className="hidden"
+          accept="video/*,audio/*"
+        />
 
         <button
           onClick={() => fileInputRef.current?.click()}

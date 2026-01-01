@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, memo } from 'react';
 import { Trash2, Clock, Image, Play, Palette, Upload, Copy, Check } from 'lucide-react';
 import { useProjectStore } from '../../store/useProjectStore';
 import { formatTime } from '../../utils/audioAnalysis';
@@ -15,21 +15,17 @@ const PRESET_COLORS = [
     '#84cc16', // Lime
 ];
 
-export const SegmentList = () => {
-    const {
-        segments,
-        currentTime,
-        activeSegmentId,
-        setActiveSegmentId,
-        deleteSegment,
-        updateSegment,
-        setCurrentTime,
-        isPlaying,
-        setIsPlaying
-    } = useProjectStore();
+export const SegmentList = memo(() => {
+    const segments = useProjectStore(state => state.segments);
+    const currentTime = useProjectStore(state => state.currentTime);
+    const activeSegmentId = useProjectStore(state => state.activeSegmentId);
+    const isPlaying = useProjectStore(state => state.isPlaying);
 
-    // Remove the redundant mapping
-    // const segments = fragments || [];
+    const setActiveSegmentId = useProjectStore(state => state.setActiveSegmentId);
+    const deleteSegment = useProjectStore(state => state.deleteSegment);
+    const updateSegment = useProjectStore(state => state.updateSegment);
+    const setCurrentTime = useProjectStore(state => state.setCurrentTime);
+    const setIsPlaying = useProjectStore(state => state.setIsPlaying);
 
     const listRef = useRef<HTMLDivElement>(null);
     const [colorPickerOpen, setColorPickerOpen] = useState<string | null>(null);
@@ -43,7 +39,6 @@ export const SegmentList = () => {
             setActiveSegmentId(active.id);
 
             // AUTO-SCROLL: Solo cuando está sonando (isPlaying).
-            // Esto evita que la lista "parpadee" o salte mientras el usuario hace zoom o navega en pausa.
             if (listRef.current && isPlaying) {
                 const el = listRef.current.querySelector(`[data-seg-id="${active.id}"]`);
                 if (el) {
@@ -138,6 +133,8 @@ export const SegmentList = () => {
                                     <Upload size={24} className="text-white/30 mb-2" />
                                     <span className="text-xs text-white/40">Subir imagen</span>
                                     <input
+                                        id={`image-upload-${seg.id}`}
+                                        name={`image-upload-${seg.id}`}
                                         type="file"
                                         accept="image/*"
                                         className="hidden"
@@ -145,7 +142,7 @@ export const SegmentList = () => {
                                         ref={(el) => { if (el) fileInputRefs.current.set(seg.id, el); }}
                                     />
                                 </label>
-                            ) /* @ts-ignore */}
+                            )}
 
                             {/* Overlay controls - always visible on mobile, hover on desktop */}
                             <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-end justify-between p-2">
@@ -260,4 +257,5 @@ export const SegmentList = () => {
             </div>
         </div>
     );
-};
+});
+SegmentList.displayName = 'SegmentList';

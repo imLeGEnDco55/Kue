@@ -1,19 +1,26 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, memo } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import RegionsPlugin, { type Region } from 'wavesurfer.js/dist/plugins/regions.js';
 import { useProjectStore } from '../../store/useProjectStore';
 
-export const Waveform = () => {
+export const Waveform = memo(() => {
     const containerRef = useRef<HTMLDivElement>(null);
     const wavesurfer = useRef<WaveSurfer | null>(null);
     const regionsPlugin = useRef<RegionsPlugin | null>(null);
     const [isReady, setIsReady] = useState(false);
 
-    const {
-        videoUrl, isPlaying, currentTime, zoom,
-        segments, setCurrentTime, setZoom,
-        isRecording, activeSegmentStart, addSegment, showToast
-    } = useProjectStore();
+    const videoUrl = useProjectStore(state => state.videoUrl);
+    const isPlaying = useProjectStore(state => state.isPlaying);
+    const currentTime = useProjectStore(state => state.currentTime);
+    const zoom = useProjectStore(state => state.zoom);
+    const segments = useProjectStore(state => state.segments);
+    const isRecording = useProjectStore(state => state.isRecording);
+    const activeSegmentStart = useProjectStore(state => state.activeSegmentStart);
+
+    const setCurrentTime = useProjectStore(state => state.setCurrentTime);
+    const setZoom = useProjectStore(state => state.setZoom);
+    const addSegment = useProjectStore(state => state.addSegment);
+    const showToast = useProjectStore(state => state.showToast);
 
     // Initialize WaveSurfer
     useEffect(() => {
@@ -279,4 +286,5 @@ export const Waveform = () => {
             )}
         </div>
     );
-};
+});
+Waveform.displayName = 'Waveform';
