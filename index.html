@@ -13,11 +13,24 @@
   <meta name="apple-mobile-web-app-title" content="KueStudio" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <title>KueStudio</title>
-  <script type="module" crossorigin src="/Kue/assets/index-JYWhaJ-8.js"></script>
-  <link rel="stylesheet" crossorigin href="/Kue/assets/index-Dy2XnSpr.css">
+  <script type="module" crossorigin src="/Kue/assets/index-BMrdWzmA.js"></script>
+  <link rel="stylesheet" crossorigin href="/Kue/assets/index-CXfWFsNS.css">
 <link rel="manifest" href="/Kue/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/Kue/registerSW.js"></script></head>
 
 <body>
+  <!-- GitHub Pages SPA redirect handler -->
+  <script>
+    (function (l) {
+      if (l.search[1] === '/') {
+        var decoded = l.search.slice(1).split('&').map(function (s) {
+          return s.replace(/~and~/g, '&')
+        }).join('?');
+        window.history.replaceState(null, null,
+          l.pathname.slice(0, -1) + decoded + l.hash
+        );
+      }
+    }(window.location))
+  </script>
   <div id="root"></div>
 </body>
 
