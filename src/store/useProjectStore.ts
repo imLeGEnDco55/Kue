@@ -126,24 +126,50 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         // Validate minimum duration (0.1s to avoid accidental taps)
         if (end - start < 0.1) return null;
 
-        // SNAP INTELIGENTE: Ajustar si hay overlap con Kues existentes
-        const existingSegments = state.segments;
+        // ANTI-OVERLAP ESTRICTO: Ajustar nuevo Kue y dividir existentes si es necesario
+        let existingSegments = [...state.segments];
+        const segmentsToAdd: Segment[] = [];
+        const segmentsToRemove: string[] = [];
 
-        // Find if we're overlapping with any existing segment
         for (const seg of existingSegments) {
-            // Si el nuevo empieza antes que uno existente y termina después de su inicio
-            if (start < seg.start && end > seg.start) {
-                // Snap: termina donde empieza el existente
+            // Caso 1: El nuevo cubre completamente a uno existente -> eliminar el existente
+            if (start <= seg.start && end >= seg.end) {
+                segmentsToRemove.push(seg.id);
+                continue;
+            }
+
+            // Caso 2: El nuevo está completamente dentro de uno existente -> dividir
+            if (start > seg.start && end < seg.end) {
+                // Dividir en dos: [seg.start, start] y [end, seg.end]
+                segmentsToRemove.push(seg.id);
+                segmentsToAdd.push({
+                    ...seg,
+                    id: crypto.randomUUID(),
+                    end: start
+                });
+                segmentsToAdd.push({
+                    ...seg,
+                    id: crypto.randomUUID(),
+                    start: end,
+                    note: seg.note ? `${seg.note} (cont)` : ''
+                });
+                continue;
+            }
+
+            // Caso 3: El nuevo se superpone por la izquierda -> recortar el existente
+            if (start < seg.start && end > seg.start && end < seg.end) {
+                // Snap: nuevo termina donde empieza el existente
                 end = seg.start;
             }
-            // Si el nuevo termina después que uno existente y empieza antes de su fin
-            if (end > seg.end && start < seg.end) {
-                // Snap: empieza donde termina el existente
+
+            // Caso 4: El nuevo se superpone por la derecha -> recortar el existente
+            if (start > seg.start && start < seg.end && end > seg.end) {
+                // Snap: nuevo empieza donde termina el existente
                 start = seg.end;
             }
         }
 
-        // Re-validate after snap
+        // Re-validate after adjustments
         if (end - start < 0.1) return null;
 
         // Haptic feedback
@@ -157,16 +183,23 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
             color: '#8b5cf6'
         };
 
-        // ENCADENAMIENTO INTELIGENTE:
-        // Si el usuario avanzó en el tiempo, encadenar al siguiente
-        // Si retrocedió, parar y dejar elegir
+        // ENCADENAMIENTO INTELIGENTE
         const wentForward = endTime >= state.activeSegmentStart;
 
-        set((s) => ({
-            segments: [...s.segments, newSegment].sort((a, b) => a.start - b.start),
-            isRecording: wentForward, // Continúa grabando si fue hacia adelante
-            activeSegmentStart: wentForward ? end : null // Encadena desde el final
-        }));
+        set((s) => {
+            // Remove segments that were fully covered or split
+            let updatedSegments = s.segments.filter(seg => !segmentsToRemove.includes(seg.id));
+            // Add the split segments
+            updatedSegments = [...updatedSegments, ...segmentsToAdd, newSegment];
+            // Sort by start time
+            updatedSegments.sort((a, b) => a.start - b.start);
+
+            return {
+                segments: updatedSegments,
+                isRecording: wentForward,
+                activeSegmentStart: wentForward ? end : null
+            };
+        });
 
         return newSegment;
     },

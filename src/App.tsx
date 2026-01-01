@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import {
-  Play, Pause, ZoomIn, ZoomOut, ArrowLeft, Plus, Trash2,
+  Play, Pause, Square, ZoomIn, ZoomOut, ArrowLeft, Plus, Trash2,
   Calendar, Music, Download, Undo2, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -35,6 +35,7 @@ function App() {
 
   const setVideoUrl = useProjectStore(state => state.setVideoUrl);
   const setIsPlaying = useProjectStore(state => state.setIsPlaying);
+  const setCurrentTime = useProjectStore(state => state.setCurrentTime);
   const setZoom = useProjectStore(state => state.setZoom);
   const loadSegments = useProjectStore(state => state.loadSegments);
   const startRecording = useProjectStore(state => state.startRecording);
@@ -355,6 +356,19 @@ function App() {
             className="p-3 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all hover:scale-110 active:scale-95 shadow-lg"
           >
             {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}
+          </button>
+
+          {/* STOP - Full reset */}
+          <button
+            onClick={() => {
+              setIsPlaying(false);
+              cancelRecording();
+              setCurrentTime(0);
+            }}
+            className="p-2.5 rounded-lg bg-white/5 hover:bg-red-500/20 text-white/60 hover:text-red-400 transition-all"
+            title="Detener y reiniciar"
+          >
+            <Square size={16} fill="currentColor" />
           </button>
 
           {/* MARK BUTTON */}
