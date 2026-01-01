@@ -6,17 +6,17 @@ Este documento contiene instrucciones para agentes de IA que trabajen en el proy
 
 ## 📋 Resumen del Proyecto
 
-**KueStudio** es una PWA para crear "Kues" (puntos de corte temporales) sobre audio, diseñada para generar prompts optimizados para IAs de video como Veo 3.1.
+**KueStudio** es una PWA para crear "Kues" (puntos de corte temporales) sobre audio, diseñada para crear contenido audiovisual y/o generar prompts optimizados para IAs de video como Veo 3.1.
 
 ### Concepto Core
 ```
-Audio → Marcar tiempos → Escribir prompts → Exportar para IA de video
+Audio → Marcar tiempos → Escribir descripciones → Exportar
 ```
 
 ### No es
 - Un editor de video completo
 - Una herramienta de edición de audio
-- Un generador de video (solo prepara los prompts)
+- Un generador de video (solo puede preparar los prompts)
 
 ---
 
@@ -49,7 +49,7 @@ Audio → Marcar tiempos → Escribir prompts → Exportar para IA de video
 | `SegmentList.tsx` | UI de lista de Kues, copiar, colores |
 | `Waveform.tsx` | Visualización de audio con regions |
 | `StoryboardPlayer.tsx` | Muestra imágenes sincronizadas |
-| `ExportModal.tsx` | Genera JSON/CSV/Guión IA |
+| `ExportModal.tsx` | Genera JSON/CSV/Guión |
 
 ---
 
@@ -66,7 +66,7 @@ Audio → Marcar tiempos → Escribir prompts → Exportar para IA de video
 - Todo se guarda en IndexedDB local
 - No hay backend ni sincronización
 
-### 3. Optimizado para Veo 3.1
+### 3. Optimizado para IA
 - Duración máxima recomendada: 8 segundos por shot
 - Formato de prompt: `"Cinematic shot, [descripción], duration Xs"`
 - Advertencias automáticas para shots largos
@@ -203,4 +203,4 @@ Al proponer cambios, siempre pensar:
 
 ---
 
-*Última actualización: Diciembre 2025 - v1.0*
+*Última actualización: Enero 2026 - v1.0.1*

@@ -5,13 +5,13 @@
 <h1 align="center">KueStudio</h1>
 
 <p align="center">
-  <strong>Editor de tiempos para generación de video con IA</strong>
+  <strong>El Storyboard de tus Kues</strong>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.0-8b5cf6?style=for-the-badge" alt="Version" />
+  <img src="https://img.shields.io/badge/version-1.0.1-8b5cf6?style=for-the-badge" alt="Version" />
   <img src="https://img.shields.io/badge/PWA-Ready-10b981?style=for-the-badge" alt="PWA Ready" />
-  <img src="https://img.shields.io/badge/Veo_3.1-Optimized-f59e0b?style=for-the-badge" alt="Veo Ready" />
+  <img src="https://img.shields.io/badge/AI-Optimized-f59e0b?style=for-the-badge" alt="AI Ready" />
 </p>
 
 ---
@@ -26,12 +26,12 @@ KueStudio es una **Progressive Web App (PWA)** diseñada para crear "Kues" (punt
 
 ### El Problema que Resuelve
 
-Cuando generas un video con IA como Veo 3.1, necesitas:
+Cuando generas un video con IA necesitas:
 1. Dividir tu audio en segmentos de X segundos
 2. Escribir un prompt visual para cada segmento
 3. Copiar cada prompt con la duración exacta
 
-**KueStudio automatiza este flujo**, permitiéndote marcar tiempos mientras escuchas y exportar todo listo para la IA.
+**KueStudio automatiza este flujo**, permitiéndote marcar tiempos mientras escuchas y SIMPLIFICAR el proceso de creación de videoclips.
 
 ---
 
@@ -49,9 +49,9 @@ Cuando generas un video con IA como Veo 3.1, necesitas:
 ### Optimizado para IA
 | Feature | Descripción |
 |---------|-------------|
-| 📋 **Copiar para Veo** | Un tap = prompt formateado listo para pegar |
-| 📤 **Export Guión IA** | Archivo .txt con todos los shots, duraciones y tips |
-| ⚠️ **Advertencias** | Alerta si un shot excede 8s (límite de Veo) |
+| 📋 **Copiar para Generación de Video** | Un tap = prompt formateado listo para pegar |
+| 📤 **Export Guión** | Archivo .txt con todos los shots, duraciones y tips |
+| ⚠️ **Advertencias** | Alerta si un shot excede 8s |
 | 🎯 **Frames Calculados** | Muestra frames @24fps automáticamente |
 
 ### Mobile-First
@@ -106,27 +106,27 @@ Home → + NUEVO PROYECTO → Seleccionar audio/video
 
 ### 2. Marcar Kues
 ```
-▶️ Play → ⚡ INICIAR (comienza grabación)
-→ ✂️ CORTAR (cierra segmento, abre el siguiente)
+▶️ Play → ⚡ GO! (comienza grabación)
+→ ✂️ KUE (cierra segmento, abre el siguiente)
 → Repetir...
 → ⏹️ Pausar para terminar
 ```
 
-### 3. Editar Prompts
+### 3. Editar Kues
 ```
-En cada Kue → Escribe el prompt visual
+En cada Kue → Descripciónes
 Ejemplo: "Close-up of a girl dancing, neon lights, slow motion"
 ```
 
-### 4. Exportar para Veo
+### 4. Exportar
 **Opción A: Individual**
 ```
-Toca 📋 en cada Kue → Pega en Veo → Genera
+Toca 📋 en cada Kue → Pega en IA → Genera
 ```
 
 **Opción B: Batch**
 ```
-📤 Exportar → Guión IA → Descargar .txt
+📤 Exportar → Guión → Descargar .txt
 ```
 
 ---
@@ -186,7 +186,7 @@ src/
 
 ## 📄 Licencia
 
-MIT License - Usa libremente para proyectos personales y comerciales.
+GLPL v1.3 - “Que el arte sea libre, el deseo justo, y el glitch prenda fuego a la propiedad.”
 
 ---
 
@@ -195,10 +195,10 @@ MIT License - Usa libremente para proyectos personales y comerciales.
 Desarrollado con 💜 por **elWaiEle - imLeGEnDco**
 
 Con la ayuda de **Antigravity AI** (Google DeepMind)
-ChatGPT 5 / Claude Opus 4.5 / Gémini 3 Pro
+**ChatGPT 5 / Claude Opus 4.5 / Gémini 3 Pro**
 
 ---
 
 <p align="center">
-  <strong>¡Feliz creación de videoclips! 🎬</strong>
+  <strong>¡Feliz creación!🎬</strong>
 </p>

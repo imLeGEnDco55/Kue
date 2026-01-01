@@ -39,7 +39,7 @@ export const VideoMonitor = () => {
     if (!videoUrl) {
         return (
             <div className="w-full aspect-video bg-black flex items-center justify-center border border-neon-purple/30 rounded-lg shadow-[0_0_15px_rgba(139,92,246,0.1)]">
-                <p className="text-neon-purple animate-pulse">NO SIGNAL</p>
+                <p className="text-sm font-bold tracking-widest text-white/40 uppercase">SIN SEÑAL</p>
             </div>
         );
     }

@@ -56,7 +56,7 @@ export const ExportModal = ({ isOpen, onClose, projectName, projectId }: ExportM
         // Header
         lines.push('═══════════════════════════════════════════════════════════');
         lines.push(`   🎬 ${projectName.toUpperCase()}`);
-        lines.push('   Guión para Generación de Video con IA (Veo 3.1)');
+        lines.push('   Guión Cinematográfico para IA');
         lines.push('═══════════════════════════════════════════════════════════');
         lines.push('');
         lines.push(`📊 BPM: ${bpm || 'No detectado'}`);
@@ -68,7 +68,7 @@ export const ExportModal = ({ isOpen, onClose, projectName, projectId }: ExportM
         const longShots = segments.filter(s => (s.end - s.start) > MAX_AI_SHOT_DURATION);
         if (longShots.length > 0) {
             lines.push('⚠️  ADVERTENCIA: Los siguientes shots exceden 8 segundos.');
-            lines.push('    Considera dividirlos para mejor generación en Veo:');
+            lines.push('    Considera dividirlos para mejor generación');
             longShots.forEach((s) => {
                 const idx = segments.findIndex(seg => seg.id === s.id) + 1;
                 lines.push(`    - Shot ${idx.toString().padStart(2, '0')}: ${(s.end - s.start).toFixed(1)}s`);
@@ -109,7 +109,7 @@ export const ExportModal = ({ isOpen, onClose, projectName, projectId }: ExportM
         // Footer with tips
         lines.push('───────────────────────────────────────────────────────────');
         lines.push('');
-        lines.push('💡 TIPS PARA VEO 3.1:');
+        lines.push('💡 TIPS PARA GENERACIÓN DE VIDEO CON IA:');
         lines.push('   • Máximo recomendado por clip: 8 segundos');
         lines.push('   • Incluye estilo visual: "cinematic", "anime", "realistic"');
         lines.push('   • Describe movimientos de cámara: "slow pan", "dolly in"');
@@ -199,7 +199,7 @@ export const ExportModal = ({ isOpen, onClose, projectName, projectId }: ExportM
                             }`}
                     >
                         <Film size={18} />
-                        <span className="font-medium">Guión IA</span>
+                        <span className="font-medium">Guión</span>
                     </button>
                     <button
                         onClick={() => setActiveTab('json')}
@@ -219,7 +219,7 @@ export const ExportModal = ({ isOpen, onClose, projectName, projectId }: ExportM
                             }`}
                     >
                         <FileSpreadsheet size={18} />
-                        <span className="font-medium">Excel CSV</span>
+                        <span className="font-medium">CSV</span>
                     </button>
                 </div>
 

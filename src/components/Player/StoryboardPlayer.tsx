@@ -83,7 +83,7 @@ export const StoryboardPlayer = () => {
                         </p>
                     ) : (
                         <div className="text-center">
-                            <p className="text-sm">STORYBOARD</p>
+                            <p className="text-sm font-bold tracking-widest text-white/40 uppercase">🞮STORYBOARD🞮</p>
                             <p className="text-xs text-white/20 mt-1">
                                 Sube imágenes a los Kues
                             </p>

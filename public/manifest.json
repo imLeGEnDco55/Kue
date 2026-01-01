@@ -1,7 +1,7 @@
 {
     "name": "KueStudio",
     "short_name": "Kue",
-    "description": "Editor de tiempos para generación de video con IA",
+    "description": "El Storyboard de tus Kues",
     "start_url": "/",
     "display": "standalone",
     "orientation": "any",

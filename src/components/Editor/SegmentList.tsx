@@ -139,8 +139,8 @@ export const SegmentList = () => {
                                 </label>
                             )}
 
-                            {/* Overlay controls */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between p-2">
+                            {/* Overlay controls - always visible on mobile, hover on desktop */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-end justify-between p-2">
                                 <button
                                     onClick={() => handleJumpTo(seg.start)}
                                     className="p-2 rounded-full text-white hover:scale-110 transition-transform"
@@ -227,8 +227,8 @@ export const SegmentList = () => {
                             <button
                                 onClick={() => handleCopyForVeo(seg)}
                                 className={`p-2 rounded-lg transition-all ${copiedId === seg.id
-                                        ? 'bg-green-500/20 text-green-400'
-                                        : 'bg-white/5 text-white/50 hover:bg-neon-purple hover:text-white'
+                                    ? 'bg-green-500/20 text-green-400'
+                                    : 'bg-white/5 text-white/50 hover:bg-neon-purple hover:text-white'
                                     }`}
                                 title="Copiar prompt para Veo"
                             >
