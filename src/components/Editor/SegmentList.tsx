@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Trash2, Clock, Image, Play, Palette, Upload } from 'lucide-react';
+import { Trash2, Clock, Image, Play, Palette, Upload, Copy, Check } from 'lucide-react';
 import { useProjectStore } from '../../store/useProjectStore';
 import { formatTime } from '../../utils/audioAnalysis';
 
@@ -29,6 +29,7 @@ export const SegmentList = () => {
 
     const listRef = useRef<HTMLDivElement>(null);
     const [colorPickerOpen, setColorPickerOpen] = useState<string | null>(null);
+    const [copiedId, setCopiedId] = useState<string | null>(null);
     const fileInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
     // Auto-highlight and scroll to active segment during playback
@@ -67,6 +68,18 @@ export const SegmentList = () => {
     const handleColorChange = (segId: string, color: string) => {
         updateSegment(segId, { color });
         setColorPickerOpen(null);
+    };
+
+    // Copy prompt for Veo (optimized format)
+    const handleCopyForVeo = async (seg: typeof segments[0]) => {
+        const duration = (seg.end - seg.start).toFixed(1);
+        const prompt = seg.note
+            ? `Cinematic shot, ${seg.note}, duration ${duration}s`
+            : `[Agrega descripción], duration ${duration}s`;
+
+        await navigator.clipboard.writeText(prompt);
+        setCopiedId(seg.id);
+        setTimeout(() => setCopiedId(null), 2000);
     };
 
     return (
@@ -195,7 +208,7 @@ export const SegmentList = () => {
                             </div>
                         </div>
 
-                        {/* Note Input + Color indicator */}
+                        {/* Note Input + Copy Button */}
                         <div className="p-3 border-t border-white/5 flex items-center gap-2">
                             {/* Color indicator */}
                             <div
@@ -206,14 +219,21 @@ export const SegmentList = () => {
                             <input
                                 value={seg.note}
                                 onChange={(e) => updateSegment(seg.id, { note: e.target.value })}
-                                placeholder={`Notas del Kue...`}
+                                placeholder={`Prompt para Veo...`}
                                 className="flex-1 bg-transparent text-sm text-white focus:outline-none placeholder:text-white/30 placeholder:italic"
                             />
 
-                            {/* Segment number - minimal */}
-                            <span className="text-xs text-white/30 font-mono">
-                                #{idx + 1}
-                            </span>
+                            {/* Copy for Veo button */}
+                            <button
+                                onClick={() => handleCopyForVeo(seg)}
+                                className={`p-2 rounded-lg transition-all ${copiedId === seg.id
+                                        ? 'bg-green-500/20 text-green-400'
+                                        : 'bg-white/5 text-white/50 hover:bg-neon-purple hover:text-white'
+                                    }`}
+                                title="Copiar prompt para Veo"
+                            >
+                                {copiedId === seg.id ? <Check size={14} /> : <Copy size={14} />}
+                            </button>
                         </div>
                     </div>
                 ))}

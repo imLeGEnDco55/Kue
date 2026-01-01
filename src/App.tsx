@@ -11,6 +11,7 @@ import { Waveform } from './components/Timeline/Waveform';
 import { SegmentList } from './components/Editor/SegmentList';
 import { Toast } from './components/UI/Toast';
 import { ExportModal } from './components/UI/ExportModal';
+import { MobileDrawer, MobileDrawerButton } from './components/UI/MobileDrawer';
 import { useProjectStore } from './store/useProjectStore';
 import { analyzeAudioBlob, formatTime } from './utils/audioAnalysis';
 
@@ -19,6 +20,7 @@ function App() {
   const [projectId, setProjectId] = useState<string | null>(null);
   const [projectName, setProjectName] = useState('');
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showMobileDrawer, setShowMobileDrawer] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Store de Zustand
@@ -184,10 +186,17 @@ function App() {
       <div className="h-screen bg-neon-dark text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-neon-purple/20 via-black to-black -z-10" />
 
+        {/* Logo */}
+        <img
+          src="/logo.png"
+          alt="KueStudio"
+          className="w-24 h-24 mb-4 drop-shadow-[0_0_30px_rgba(139,92,246,0.5)]"
+        />
+
         <h1 className="text-4xl md:text-6xl font-bold tracking-[0.2em] mb-2 text-transparent bg-clip-text bg-gradient-to-r from-white to-neon-purple">
           KUE<span className="font-light text-white">STUDIO</span>
         </h1>
-        <p className="text-white/40 font-mono text-sm mb-12 tracking-widest">V9 HYBRID EDITION</p>
+        <p className="text-white/40 font-mono text-sm mb-12 tracking-widest">V1.0</p>
 
         {/* LISTA DE PROYECTOS */}
         <div className="w-full max-w-2xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8 max-h-[50vh] overflow-y-auto px-4 scrollbar-thin scrollbar-thumb-neon-purple/20">
@@ -395,10 +404,26 @@ function App() {
           </div>
         </div>
 
-        {/* Sidebar - Segment List */}
-        <div className="w-full md:w-80 h-1/3 md:h-full border-t md:border-t-0 md:border-r border-neon-purple/20 bg-cyber-gray overflow-hidden order-2 md:order-1 flex flex-col z-10 shadow-2xl">
+        {/* Sidebar - Desktop only */}
+        <div className="hidden md:flex w-80 h-full border-r border-neon-purple/20 bg-cyber-gray overflow-hidden order-1 flex-col z-10 shadow-2xl">
           <SegmentList />
         </div>
+
+        {/* Mobile Drawer Button */}
+        <MobileDrawerButton
+          onClick={() => setShowMobileDrawer(true)}
+          label="Kues"
+          count={segments.length}
+        />
+
+        {/* Mobile Drawer */}
+        <MobileDrawer
+          isOpen={showMobileDrawer}
+          onClose={() => setShowMobileDrawer(false)}
+          title={`KUES (${segments.length})`}
+        >
+          <SegmentList />
+        </MobileDrawer>
       </main>
 
       <Toast />
