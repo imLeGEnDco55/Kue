@@ -203,4 +203,4 @@ Al proponer cambios, siempre pensar:
 
 ---
 
-*Última actualización: Enero 2026 - v1.0.2*
+*Última actualización: Enero 2026 - v1.0.4*

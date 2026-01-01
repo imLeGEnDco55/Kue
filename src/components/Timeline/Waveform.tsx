@@ -164,7 +164,7 @@ export const Waveform = () => {
     useEffect(() => {
         if (wavesurfer.current && isReady) {
             try {
-                wavesurfer.current.zoom(zoom);
+                wavesurfer.current.setOptions({ minPxPerSec: zoom });
             } catch (err) {
                 console.warn("Zoom error:", err);
             }

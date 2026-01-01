@@ -24,30 +24,34 @@ export const SegmentList = () => {
         deleteSegment,
         updateSegment,
         setCurrentTime,
+        isPlaying,
         setIsPlaying
     } = useProjectStore();
+
+    // Remove the redundant mapping
+    // const segments = fragments || [];
 
     const listRef = useRef<HTMLDivElement>(null);
     const [colorPickerOpen, setColorPickerOpen] = useState<string | null>(null);
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const fileInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
-    // Auto-highlight and scroll to active segment during playback
+    // Auto-highlight and scroll to active segment
     useEffect(() => {
         const active = segments.find(s => currentTime >= s.start && currentTime < s.end);
         if (active && activeSegmentId !== active.id) {
             setActiveSegmentId(active.id);
 
-            // Use local ref instead of global getElementById to avoid conflicts between 
-            // the desktop sidebar and mobile drawer instances.
-            if (listRef.current) {
+            // AUTO-SCROLL: Solo cuando está sonando (isPlaying).
+            // Esto evita que la lista "parpadee" o salte mientras el usuario hace zoom o navega en pausa.
+            if (listRef.current && isPlaying) {
                 const el = listRef.current.querySelector(`[data-seg-id="${active.id}"]`);
                 if (el) {
                     el.scrollIntoView({ behavior: 'auto', block: 'nearest' });
                 }
             }
         }
-    }, [currentTime, segments, activeSegmentId, setActiveSegmentId]);
+    }, [currentTime, segments, activeSegmentId, setActiveSegmentId, isPlaying]);
 
     // Jump to time
     const handleJumpTo = (time: number) => {
@@ -75,7 +79,7 @@ export const SegmentList = () => {
     };
 
     // Copy prompt for AI video generators (optimized format)
-    const handleCopyForVeo = async (seg: typeof segments[0]) => {
+    const handleCopyForVeo = async (seg: any) => {
         const duration = (seg.end - seg.start).toFixed(1);
         const prompt = seg.note
             ? `Cinematic shot, ${seg.note}, duration ${duration}s`
@@ -141,7 +145,7 @@ export const SegmentList = () => {
                                         ref={(el) => { if (el) fileInputRefs.current.set(seg.id, el); }}
                                     />
                                 </label>
-                            )}
+                            ) /* @ts-ignore */}
 
                             {/* Overlay controls - always visible on mobile, hover on desktop */}
                             <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-end justify-between p-2">
@@ -227,7 +231,7 @@ export const SegmentList = () => {
                                 className="flex-1 bg-transparent text-sm text-white focus:outline-none placeholder:text-white/30 placeholder:italic"
                             />
 
-                            {/* Copy for Veo button */}
+                            {/* Copy for AI Button */}
                             <button
                                 onClick={() => handleCopyForVeo(seg)}
                                 className={`p-2 rounded-lg transition-all ${copiedId === seg.id
@@ -247,7 +251,7 @@ export const SegmentList = () => {
                         <div className="text-3xl mb-3">🎬</div>
                         <div className="mb-2">Aún no hay Kues</div>
                         <div className="text-xs text-white/40">
-                            Presiona INICIAR o doble-click en la onda
+                            Presiona GO! o doble-click en la onda
                         </div>
                     </div>
                 )}

@@ -191,7 +191,7 @@ function App() {
         <h1 className="text-4xl md:text-6xl font-bold tracking-[0.2em] mb-2 text-transparent bg-clip-text bg-linear-to-r from-white to-neon-purple">
           KUE<span className="font-light text-white">STUDIO</span>
         </h1>
-        <p className="text-white/40 font-mono text-sm mb-12 tracking-widest">V1.0.2</p>
+        <p className="text-white/40 font-mono text-sm mb-12 tracking-widest">V1.0.4</p>
 
         {/* LISTA DE PROYECTOS */}
         <div className="w-full max-w-2xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8 max-h-[50vh] overflow-y-auto px-4 scrollbar-thin scrollbar-thumb-neon-purple/20">
