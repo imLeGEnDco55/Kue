@@ -10,6 +10,7 @@ import { StoryboardPlayer } from './components/Player/StoryboardPlayer';
 import { Waveform } from './components/Timeline/Waveform';
 import { SegmentList } from './components/Editor/SegmentList';
 import { Toast } from './components/UI/Toast';
+import { ExportModal } from './components/UI/ExportModal';
 import { useProjectStore } from './store/useProjectStore';
 import { analyzeAudioBlob, formatTime } from './utils/audioAnalysis';
 
@@ -17,6 +18,7 @@ function App() {
   const [currentView, setCurrentView] = useState<'HOME' | 'EDITOR'>('HOME');
   const [projectId, setProjectId] = useState<string | null>(null);
   const [projectName, setProjectName] = useState('');
+  const [showExportModal, setShowExportModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Store de Zustand
@@ -171,26 +173,9 @@ function App() {
     }
   };
 
-  // --- EXPORTAR JSON ---
-  const handleExportJSON = async () => {
-    if (!projectId) return;
-    const project = await db.projects.get(projectId);
-    if (!project) return;
-
-    const data = {
-      name: project.name,
-      bpm: project.bpm || 0,
-      source: (project.audioBlob as File)?.name || 'unknown',
-      segments: project.segments,
-      exportedAt: new Date().toISOString()
-    };
-
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `${project.name}_kue.json`;
-    a.click();
-    showToast('JSON exportado');
+  // --- EXPORTAR (abre modal) ---
+  const handleExport = () => {
+    setShowExportModal(true);
   };
 
   // --- VISTA: HOME ---
@@ -301,11 +286,11 @@ function App() {
               {bpm} BPM
             </div>
           )}
-          {/* Export JSON */}
+          {/* Export Button */}
           <button
-            onClick={handleExportJSON}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-white"
-            title="Exportar JSON"
+            onClick={handleExport}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-neon-purple"
+            title="Exportar proyecto"
           >
             <Download size={18} />
           </button>
@@ -417,6 +402,14 @@ function App() {
       </main>
 
       <Toast />
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        projectName={projectName}
+        projectId={projectId || ''}
+      />
     </div>
   );
 }
