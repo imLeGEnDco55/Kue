@@ -179,7 +179,7 @@ function App() {
   if (currentView === 'HOME') {
     return (
       <div className="h-screen bg-neon-dark text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-neon-purple/20 via-black to-black -z-10" />
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_center,var(--tw-gradient-stops))] from-neon-purple/20 via-black to-black -z-10" />
 
         {/* Logo */}
         <img
@@ -188,7 +188,7 @@ function App() {
           className="w-24 h-24 mb-4 drop-shadow-[0_0_30px_rgba(139,92,246,0.5)]"
         />
 
-        <h1 className="text-4xl md:text-6xl font-bold tracking-[0.2em] mb-2 text-transparent bg-clip-text bg-gradient-to-r from-white to-neon-purple">
+        <h1 className="text-4xl md:text-6xl font-bold tracking-[0.2em] mb-2 text-transparent bg-clip-text bg-linear-to-r from-white to-neon-purple">
           KUE<span className="font-light text-white">STUDIO</span>
         </h1>
         <p className="text-white/40 font-mono text-sm mb-12 tracking-widest">V1.0.2</p>
@@ -208,7 +208,7 @@ function App() {
                 className="group bg-white/5 border border-white/10 p-4 rounded-xl cursor-pointer hover:bg-white/10 hover:border-neon-purple/50 transition-all relative overflow-hidden"
               >
                 {/* Accent bar */}
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-neon-purple to-pink-500 opacity-70" />
+                <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-neon-purple to-pink-500 opacity-70" />
 
                 <div className="flex justify-between items-start mb-4 mt-1">
                   <div className="p-3 bg-black/40 rounded-lg text-neon-purple">
@@ -344,8 +344,8 @@ function App() {
                 flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-lg transition-all
                 active:scale-95 shadow-lg
                 ${isRecording
-                  ? 'bg-gradient-to-r from-red-500 to-red-700 text-white animate-pulse shadow-red-500/30'
-                  : 'bg-gradient-to-r from-neon-purple to-pink-600 text-white shadow-neon-purple/30 hover:scale-105'
+                  ? 'bg-linear-to-r from-red-500 to-red-700 text-white animate-pulse shadow-red-500/30'
+                  : 'bg-linear-to-r from-neon-purple to-pink-600 text-white shadow-neon-purple/30 hover:scale-105'
                 }
               `}
             >

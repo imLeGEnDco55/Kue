@@ -144,7 +144,7 @@ export const SegmentList = () => {
                             )}
 
                             {/* Overlay controls - always visible on mobile, hover on desktop */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-end justify-between p-2">
+                            <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-end justify-between p-2">
                                 <button
                                     onClick={() => handleJumpTo(seg.start)}
                                     className="p-2 rounded-full text-white hover:scale-110 transition-transform"
