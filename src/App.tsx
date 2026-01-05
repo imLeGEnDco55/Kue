@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import {
   Play, Pause, Square, ZoomIn, ZoomOut, ArrowLeft, Plus, Trash2,
-  Calendar, Music, Download, Undo2, ChevronDown, ChevronUp, Scissors, FileText
+  Calendar, Music, Download, Undo2, ChevronDown, ChevronUp, Scissors, FileText, Wand2, ArrowDown
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './db';
@@ -22,6 +22,8 @@ function App() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showMobileDrawer, setShowMobileDrawer] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [showToolsModal, setShowToolsModal] = useState(false);
+  const [beatsPerBar, setBeatsPerBar] = useState(4);
   const [isLongPressing, setIsLongPressing] = useState(false);
   const [showLyrics, setShowLyrics] = useState(false);
   const [projectLyrics, setProjectLyrics] = useState('');
@@ -49,6 +51,8 @@ function App() {
   const closeToEnd = useProjectStore(state => state.closeToEnd);
   const getSegmentNumber = useProjectStore(state => state.getSegmentNumber);
   const updateSegment = useProjectStore(state => state.updateSegment);
+  const autoSplitByBpm = useProjectStore(state => state.autoSplitByBpm);
+  const assignLyricsToKues = useProjectStore(state => state.assignLyricsToKues);
 
   // Query de proyectos
   const projects = useLiveQuery(() => db.projects.orderBy('createdAt').reverse().toArray());
@@ -175,6 +179,21 @@ function App() {
   // --- EXPORTAR (abre modal) ---
   const handleExport = () => {
     setShowExportModal(true);
+  };
+
+  const handleAutoSplit = () => {
+    if (confirm('⚠️ ARRIESGADO: Esto eliminará todos los Kues actuales y creará nuevos basados en el BPM. ¿Continuar?')) {
+      autoSplitByBpm(beatsPerBar);
+      setShowToolsModal(false);
+    }
+  };
+
+  const handleAssignLyrics = () => {
+    if (!projectLyrics.trim()) {
+      showToast('Escribe o pega la letra primero');
+      return;
+    }
+    assignLyricsToKues(projectLyrics);
   };
 
   // Get current Kue info
@@ -321,6 +340,16 @@ function App() {
           >
             <Download size={18} />
           </button>
+          
+          {/* Magic Tools Button */}
+          <button
+            onClick={() => setShowToolsModal(true)}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-amber-400"
+            title="Herramientas Mágicas (Auto-split)"
+          >
+            <Wand2 size={18} />
+          </button>
+
           {/* Autosave indicator - hidden on mobile */}
           <div className="hidden md:flex px-3 py-1 bg-green-500/10 text-green-400 text-xs border border-green-500/20 rounded items-center gap-2">
             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
@@ -460,6 +489,15 @@ function App() {
             <div className="flex items-center gap-2 mb-2">
               <FileText size={14} className="text-neon-purple" />
               <span className="text-white/60 text-xs font-mono">LYRICS / REFERENCIA</span>
+              <div className="flex-1" />
+              <button
+                onClick={handleAssignLyrics}
+                className="flex items-center gap-1 text-[10px] bg-white/10 hover:bg-neon-purple/20 text-white/60 hover:text-neon-purple px-2 py-1 rounded transition-colors"
+                title="Asignar cada línea de texto a un Kue existente"
+              >
+                <ArrowDown size={12} />
+                Distribuir en Kues
+              </button>
             </div>
             <textarea
               value={projectLyrics}
@@ -560,6 +598,62 @@ function App() {
                 className="flex-1 px-4 py-2 bg-neon-purple text-black font-bold rounded-lg hover:bg-neon-purple/80 transition-colors"
               >
                 Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tools Modal (Auto Split) */}
+      {showToolsModal && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-cyber-gray border border-amber-500/30 rounded-xl p-6 max-w-sm mx-4 w-full shadow-[0_0_50px_rgba(245,158,11,0.2)]">
+            <div className="flex items-center gap-3 mb-4 text-amber-400">
+              <Wand2 size={24} />
+              <h3 className="font-bold text-lg">Herramientas Mágicas</h3>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="bg-white/5 p-4 rounded-lg">
+                <label className="block text-xs uppercase tracking-wider text-white/40 mb-2">
+                  Auto-Split por BPM
+                </label>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                     <div className="text-xs text-white/60 mb-1">Beats por Compás</div>
+                     <input 
+                       type="number" 
+                       value={beatsPerBar}
+                       onChange={(e) => setBeatsPerBar(parseInt(e.target.value) || 4)}
+                       className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-white outline-none focus:border-amber-500/50"
+                     />
+                  </div>
+                  <div className="flex-1">
+                     <div className="text-xs text-white/60 mb-1">BPM Actual</div>
+                     <div className="px-3 py-2 text-white/40 font-mono bg-black/20 rounded border border-white/5">
+                        {bpm > 0 ? bpm : 'No definido'}
+                     </div>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={handleAutoSplit}
+                  disabled={bpm <= 0}
+                  className="w-full mt-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-500 border border-amber-500/30 rounded font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <Scissors size={14} />
+                  {bpm > 0 ? 'Dividir Pista Completa' : 'Define BPM primero'}
+                </button>
+                <p className="text-[10px] text-white/30 mt-2 text-center">
+                  ⚠️ Sobreescribirá todos los Kues actuales
+                </p>
+              </div>
+
+              <button
+                onClick={() => setShowToolsModal(false)}
+                className="w-full py-3 text-white/40 hover:text-white transition-colors text-sm"
+              >
+                Cancelar
               </button>
             </div>
           </div>
