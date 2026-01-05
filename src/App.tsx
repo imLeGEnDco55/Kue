@@ -1,7 +1,7 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import {
   Play, Pause, Square, ZoomIn, ZoomOut, ArrowLeft, Plus, Trash2,
-  Calendar, Music, Download, Undo2, ChevronDown, ChevronUp
+  Calendar, Music, Download, Undo2, ChevronDown, ChevronUp, Scissors, FileText
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './db';
@@ -13,7 +13,7 @@ import { SegmentList } from './components/Editor/SegmentList';
 import { Toast } from './components/UI/Toast';
 import { ExportModal } from './components/UI/ExportModal';
 import { useProjectStore } from './store/useProjectStore';
-import { analyzeAudioBlob, formatTime } from './utils/audioAnalysis';
+import { formatTime } from './utils/audioAnalysis';
 
 function App() {
   const [currentView, setCurrentView] = useState<'HOME' | 'EDITOR'>('HOME');
@@ -21,7 +21,12 @@ function App() {
   const [projectName, setProjectName] = useState('');
   const [showExportModal, setShowExportModal] = useState(false);
   const [showMobileDrawer, setShowMobileDrawer] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [isLongPressing, setIsLongPressing] = useState(false);
+  const [showLyrics, setShowLyrics] = useState(false);
+  const [projectLyrics, setProjectLyrics] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Store de Zustand
   const isPlaying = useProjectStore(state => state.isPlaying);
@@ -29,8 +34,6 @@ function App() {
   const currentTime = useProjectStore(state => state.currentTime);
   const duration = useProjectStore(state => state.duration);
   const segments = useProjectStore(state => state.segments);
-  const isRecording = useProjectStore(state => state.isRecording);
-  const activeSegmentStart = useProjectStore(state => state.activeSegmentStart);
   const bpm = useProjectStore(state => state.bpm);
 
   const setVideoUrl = useProjectStore(state => state.setVideoUrl);
@@ -38,12 +41,14 @@ function App() {
   const setCurrentTime = useProjectStore(state => state.setCurrentTime);
   const setZoom = useProjectStore(state => state.setZoom);
   const loadSegments = useProjectStore(state => state.loadSegments);
-  const startRecording = useProjectStore(state => state.startRecording);
-  const finishRecording = useProjectStore(state => state.finishRecording);
-  const cancelRecording = useProjectStore(state => state.cancelRecording);
   const setBpm = useProjectStore(state => state.setBpm);
-  const undoLastSegment = useProjectStore(state => state.undoLastSegment);
+  const undo = useProjectStore(state => state.undo);
+  const canUndo = useProjectStore(state => state.canUndo);
   const showToast = useProjectStore(state => state.showToast);
+  const cutAtPosition = useProjectStore(state => state.cutAtPosition);
+  const closeToEnd = useProjectStore(state => state.closeToEnd);
+  const getSegmentNumber = useProjectStore(state => state.getSegmentNumber);
+  const updateSegment = useProjectStore(state => state.updateSegment);
 
   // Query de proyectos
   const projects = useLiveQuery(() => db.projects.orderBy('createdAt').reverse().toArray());
@@ -83,20 +88,7 @@ function App() {
     setProjectName(name);
     setVideoUrl(url);
     loadSegments([]);
-    cancelRecording();
     setCurrentView('EDITOR');
-
-    // Analizar audio para BPM
-    try {
-      const { bpm: detectedBpm } = await analyzeAudioBlob(file);
-      if (detectedBpm > 0) {
-        setBpm(detectedBpm);
-        await db.projects.update(newId, { bpm: detectedBpm });
-        showToast(`BPM detectado: ${detectedBpm}`);
-      }
-    } catch (err) {
-      console.warn('Error analyzing audio:', err);
-    }
   };
 
   // --- ABRIR PROYECTO EXISTENTE ---
@@ -107,22 +99,7 @@ function App() {
     setVideoUrl(url);
     loadSegments(p.segments || []);
     setBpm(p.bpm || 0);
-    cancelRecording();
     setCurrentView('EDITOR');
-
-    // Si no tiene BPM, analizamos
-    if (!p.bpm) {
-      try {
-        const { bpm: detectedBpm } = await analyzeAudioBlob(p.audioBlob);
-        if (detectedBpm > 0) {
-          setBpm(detectedBpm);
-          await db.projects.update(p.id, { bpm: detectedBpm });
-          showToast(`BPM detectado: ${detectedBpm}`);
-        }
-      } catch (err) {
-        console.warn('Error analyzing audio:', err);
-      }
-    }
   };
 
   // --- BORRAR PROYECTO ---
@@ -133,53 +110,64 @@ function App() {
     }
   };
 
-  // --- LÓGICA DE CORTE (LEGACY + INTERMEDIATE CUTS) ---
-  const handleMark = () => {
-    // Check if we're inside an existing segment (for splitting)
-    const existingSegment = segments.find(s =>
-      currentTime > s.start + 0.1 && currentTime < s.end - 0.1
-    );
+  // --- KUE BUTTON: TAP = CUT, LONG-PRESS = CLOSE TO END ---
+  const handleKuePress = useCallback(() => {
+    // Start long-press timer
+    setIsLongPressing(false);
+    longPressTimerRef.current = setTimeout(() => {
+      setIsLongPressing(true);
+      if (navigator.vibrate) navigator.vibrate(100);
+      setShowCloseConfirm(true);
+    }, 1500); // 1.5 seconds for long-press
+  }, []);
 
-    if (existingSegment) {
-      // SPLIT MODE: Divide the existing segment into two
-      const { updateSegment, addSegment } = useProjectStore.getState();
+  const handleKueRelease = useCallback(() => {
+    // Clear timer
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
 
-      // Update the original segment to end at current time
-      updateSegment(existingSegment.id, { end: currentTime });
-
-      // Create a new segment from current time to original end
-      const newSegment = {
-        id: crypto.randomUUID(),
-        start: currentTime,
-        end: existingSegment.end,
-        note: '',
-        color: '#8b5cf6'
-      };
-      addSegment(newSegment);
-
-      showToast('Segmento dividido');
-      if (navigator.vibrate) navigator.vibrate([40, 50, 40]); // Double vibration for split
+    // If it was a long-press, we already showed the confirm dialog
+    if (isLongPressing) {
+      setIsLongPressing(false);
       return;
     }
 
-    // NORMAL MODE: Recording chain
-    if (!isRecording) {
-      // INICIAR grabación
-      startRecording(currentTime);
-      if (!isPlaying) setIsPlaying(true); // Auto-play
-    } else {
-      // CORTAR (cerrar segmento actual y encadenar al siguiente)
-      const newSeg = finishRecording(currentTime);
+    // Short tap = cut at current position
+    const newSeg = cutAtPosition(currentTime);
+    if (newSeg) {
+      const segNum = getSegmentNumber(newSeg.id);
+      showToast(`Kue #${segNum} creado`);
+      if (!isPlaying) setIsPlaying(true); // Auto-play after first cut
+    }
+  }, [isLongPressing, currentTime, cutAtPosition, getSegmentNumber, showToast, isPlaying, setIsPlaying]);
+
+  const handleCloseConfirm = useCallback((confirmed: boolean) => {
+    setShowCloseConfirm(false);
+    if (confirmed) {
+      const newSeg = closeToEnd();
       if (newSeg) {
-        showToast('¡Corte guardado!');
+        const segNum = getSegmentNumber(newSeg.id);
+        showToast(`Kue #${segNum} cerrado hasta el final`);
+      } else {
+        showToast('Ya está cerrado hasta el final');
       }
     }
-  };
+  }, [closeToEnd, getSegmentNumber, showToast]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+      }
+    };
+  }, []);
 
   // --- DESHACER ---
   const handleUndo = () => {
-    const removed = undoLastSegment();
-    if (removed) {
+    if (undo()) {
       showToast('Deshecho');
     }
   };
@@ -188,6 +176,10 @@ function App() {
   const handleExport = () => {
     setShowExportModal(true);
   };
+
+  // Get current Kue info
+  const currentKue = segments.find(s => currentTime >= s.start && currentTime < s.end);
+  const currentKueNumber = currentKue ? getSegmentNumber(currentKue.id) : null;
 
   // --- VISTA: HOME ---
   if (currentView === 'HOME') {
@@ -205,7 +197,7 @@ function App() {
         <h1 className="text-4xl md:text-6xl font-bold tracking-[0.2em] mb-2 text-transparent bg-clip-text bg-linear-to-r from-white to-neon-purple">
           KUE<span className="font-light text-white">STUDIO</span>
         </h1>
-        <p className="text-white/40 font-mono text-sm mb-12 tracking-widest">V1.0.1</p>
+        <p className="text-white/40 font-mono text-sm mb-12 tracking-widest">V2.0.0</p>
 
         {/* LISTA DE PROYECTOS */}
         <div className="w-full max-w-2xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8 max-h-[50vh] overflow-y-auto px-4 scrollbar-thin scrollbar-thumb-neon-purple/20">
@@ -247,7 +239,7 @@ function App() {
                     </span>
                   )}
                   <span className="text-xs font-mono bg-neon-purple/20 text-neon-purple px-2 py-1 rounded">
-                    {p.segments?.length || 0} cortes
+                    {p.segments?.length || 0} Kues
                   </span>
                 </div>
               </div>
@@ -288,7 +280,7 @@ function App() {
       <header className="h-14 border-b border-neon-purple/20 flex items-center px-4 bg-black/60 backdrop-blur justify-between shrink-0 z-20">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => { cancelRecording(); setCurrentView('HOME'); }}
+            onClick={() => setCurrentView('HOME')}
             className="p-2 hover:bg-white/10 rounded-full transition-colors"
           >
             <ArrowLeft size={20} className="text-white" />
@@ -307,12 +299,20 @@ function App() {
           />
         </div>
         <div className="flex gap-2 items-center">
-          {/* BPM Badge */}
-          {bpm > 0 && (
-            <div className="px-3 py-1 bg-amber-500/10 text-amber-400 text-xs border border-amber-500/20 rounded font-mono">
-              {bpm} BPM
-            </div>
-          )}
+          {/* BPM Badge - Editable */}
+          <input
+            type="number"
+            value={bpm || ''}
+            onChange={(e) => {
+              const newBpm = parseInt(e.target.value) || 0;
+              setBpm(newBpm);
+              if (projectId) {
+                db.projects.update(projectId, { bpm: newBpm });
+              }
+            }}
+            placeholder="BPM"
+            className="w-16 px-2 py-1 bg-amber-500/10 text-amber-400 text-xs border border-amber-500/20 rounded font-mono text-center outline-none focus:border-amber-400"
+          />
           {/* Export Button */}
           <button
             onClick={handleExport}
@@ -321,8 +321,8 @@ function App() {
           >
             <Download size={18} />
           </button>
-          {/* Autosave indicator */}
-          <div className="px-3 py-1 bg-green-500/10 text-green-400 text-xs border border-green-500/20 rounded flex items-center gap-2">
+          {/* Autosave indicator - hidden on mobile */}
+          <div className="hidden md:flex px-3 py-1 bg-green-500/10 text-green-400 text-xs border border-green-500/20 rounded items-center gap-2">
             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
             AUTO
           </div>
@@ -340,6 +340,35 @@ function App() {
             </div>
           </div>
         </div>
+
+        {/* KUE INFO BAR - Shows current Kue info with editable note */}
+        {currentKue && (
+          <div className="bg-black/60 border-t border-white/10 px-4 py-2 shrink-0">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div 
+                  className="w-4 h-4 rounded shrink-0"
+                  style={{ backgroundColor: currentKue.color || '#8b5cf6' }}
+                />
+                <span className="text-white font-bold text-sm shrink-0">#{currentKueNumber}</span>
+                <span className="text-white/40 text-xs shrink-0 hidden md:inline">
+                  {formatTime(currentKue.start)} → {formatTime(currentKue.end)}
+                </span>
+              </div>
+              <span className="text-white/60 text-xs font-mono shrink-0">
+                {((currentKue.end - currentKue.start)).toFixed(1)}s
+              </span>
+            </div>
+            {/* Editable Note for current Kue */}
+            <input
+              type="text"
+              value={currentKue.note || ''}
+              onChange={(e) => updateSegment(currentKue.id, { note: e.target.value })}
+              placeholder="Escribe la nota/lyric de este Kue..."
+              className="w-full mt-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded text-white text-sm placeholder-white/30 outline-none focus:border-neon-purple/50 transition-colors"
+            />
+          </div>
+        )}
 
         {/* MIDDLE: Control Bar - Compact */}
         <div className="h-16 border-t border-white/10 bg-black/80 flex items-center justify-center gap-3 md:gap-6 shrink-0 px-3">
@@ -362,7 +391,6 @@ function App() {
           <button
             onClick={() => {
               setIsPlaying(false);
-              cancelRecording();
               setCurrentTime(0);
             }}
             className="p-2.5 rounded-lg bg-white/5 hover:bg-red-500/20 text-white/60 hover:text-red-400 transition-all"
@@ -371,29 +399,49 @@ function App() {
             <Square size={16} fill="currentColor" />
           </button>
 
-          {/* MARK BUTTON */}
+          {/* KUE BUTTON - Tap to cut, Long-press to close */}
           <button
-            onClick={handleMark}
+            onMouseDown={handleKuePress}
+            onMouseUp={handleKueRelease}
+            onMouseLeave={() => {
+              if (longPressTimerRef.current) {
+                clearTimeout(longPressTimerRef.current);
+                longPressTimerRef.current = null;
+              }
+              setIsLongPressing(false);
+            }}
+            onTouchStart={handleKuePress}
+            onTouchEnd={handleKueRelease}
             className={`
               flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-base transition-all
-              active:scale-95 shadow-lg
-              ${isRecording
-                ? 'bg-linear-to-r from-red-500 to-red-700 text-white animate-pulse shadow-red-500/30'
+              active:scale-95 shadow-lg select-none
+              ${isLongPressing
+                ? 'bg-linear-to-r from-green-500 to-green-700 text-white shadow-green-500/30'
                 : 'bg-linear-to-r from-neon-purple to-pink-600 text-white shadow-neon-purple/30 hover:scale-105'
               }
             `}
           >
-            {isRecording ? 'KUE' : 'GO!'}
+            <Scissors size={18} />
+            KUE
           </button>
 
           {/* Undo */}
           <button
             onClick={handleUndo}
-            disabled={segments.length === 0}
+            disabled={!canUndo()}
             className="p-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
             title="Deshacer"
           >
             <Undo2 size={18} />
+          </button>
+
+          {/* Lyrics Toggle */}
+          <button
+            onClick={() => setShowLyrics(!showLyrics)}
+            className={`p-2.5 rounded-lg transition-all ${showLyrics ? 'bg-neon-purple/30 text-neon-purple' : 'bg-white/5 hover:bg-white/10 text-white/60 hover:text-neon-purple'}`}
+            title="Mostrar/ocultar lyrics de referencia"
+          >
+            <FileText size={18} />
           </button>
 
           {/* Expand to full list */}
@@ -405,6 +453,22 @@ function App() {
             {showMobileDrawer ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
           </button>
         </div>
+
+        {/* LYRICS REFERENCE AREA - Collapsible */}
+        {showLyrics && (
+          <div className="border-t border-neon-purple/30 bg-black/40 px-4 py-3 shrink-0">
+            <div className="flex items-center gap-2 mb-2">
+              <FileText size={14} className="text-neon-purple" />
+              <span className="text-white/60 text-xs font-mono">LYRICS / REFERENCIA</span>
+            </div>
+            <textarea
+              value={projectLyrics}
+              onChange={(e) => setProjectLyrics(e.target.value)}
+              placeholder="Pega aquí la letra de la canción como referencia...&#10;Línea 1&#10;Línea 2&#10;..."
+              className="w-full h-24 md:h-32 px-3 py-2 bg-white/5 border border-white/10 rounded text-white text-sm placeholder-white/20 outline-none focus:border-neon-purple/50 transition-colors resize-none font-mono leading-relaxed"
+            />
+          </div>
+        )}
 
         {/* WAVEFORM */}
         <div className="h-24 md:h-32 border-t border-neon-purple/30 bg-[#111115] relative shrink-0">
@@ -418,13 +482,10 @@ function App() {
             </button>
           </div>
 
-          {/* REC Indicator */}
-          {isRecording && activeSegmentStart !== null && (
-            <div className="absolute top-1 left-2 z-10 flex items-center gap-1 bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full text-[10px] font-mono border border-red-500/30 animate-pulse">
-              <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
-              REC
-            </div>
-          )}
+          {/* Kue Count */}
+          <div className="absolute top-1 left-2 z-10 px-2 py-0.5 bg-neon-purple/20 text-neon-purple text-[10px] font-mono rounded border border-neon-purple/30">
+            {segments.length} Kues
+          </div>
 
           <Waveform />
 
@@ -438,9 +499,72 @@ function App() {
             <SegmentList />
           </div>
         )}
+
+        {/* BOTTOM PROGRESS BAR - Shows coverage */}
+        {duration > 0 && (
+          <div className="h-8 bg-black/80 border-t border-white/10 flex items-center px-4 gap-3 shrink-0">
+            {/* Progress bar showing Kue coverage */}
+            <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden relative">
+              {segments.map((seg) => {
+                const leftPercent = (seg.start / duration) * 100;
+                const widthPercent = ((seg.end - seg.start) / duration) * 100;
+                return (
+                  <div
+                    key={seg.id}
+                    className="absolute top-0 h-full rounded-full"
+                    style={{
+                      left: `${leftPercent}%`,
+                      width: `${widthPercent}%`,
+                      backgroundColor: seg.color || '#8b5cf6',
+                    }}
+                  />
+                );
+              })}
+              {/* Current time indicator */}
+              <div 
+                className="absolute top-0 w-0.5 h-full bg-white shadow-lg"
+                style={{ left: `${(currentTime / duration) * 100}%` }}
+              />
+            </div>
+            {/* Stats */}
+            <div className="flex items-center gap-2 text-[10px] font-mono text-white/50 shrink-0">
+              <span className="text-neon-purple">{segments.length} Kues</span>
+              <span>•</span>
+              <span>
+                {formatTime(segments.reduce((acc, s) => acc + (s.end - s.start), 0))} cubiertos
+              </span>
+            </div>
+          </div>
+        )}
       </main>
 
       <Toast />
+
+      {/* Close Confirmation Modal */}
+      {showCloseConfirm && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-cyber-gray border border-neon-purple/30 rounded-xl p-6 max-w-sm mx-4">
+            <h3 className="text-white font-bold text-lg mb-2">¿Cerrar hasta el final?</h3>
+            <p className="text-white/60 text-sm mb-6">
+              Esto creará el último Kue desde la posición actual hasta el final de la pista.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleCloseConfirm(false)}
+                className="flex-1 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleCloseConfirm(true)}
+                className="flex-1 px-4 py-2 bg-neon-purple text-black font-bold rounded-lg hover:bg-neon-purple/80 transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Export Modal */}
       <ExportModal

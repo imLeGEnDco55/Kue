@@ -14,11 +14,9 @@ export const Waveform = memo(() => {
     const currentTime = useProjectStore(state => state.currentTime);
     const zoom = useProjectStore(state => state.zoom);
     const segments = useProjectStore(state => state.segments);
-    const isRecording = useProjectStore(state => state.isRecording);
-    const activeSegmentStart = useProjectStore(state => state.activeSegmentStart);
 
     const setCurrentTime = useProjectStore(state => state.setCurrentTime);
-    const addSegment = useProjectStore(state => state.addSegment);
+    const cutAtPosition = useProjectStore(state => state.cutAtPosition);
     const showToast = useProjectStore(state => state.showToast);
 
     // 1. Initialize WaveSurfer
@@ -61,17 +59,15 @@ export const Waveform = memo(() => {
             }
         });
 
+        // Double-click to cut at position
         ws.on('dblclick', (relX: number) => {
             const duration = ws.getDuration();
             const clickTime = relX * duration;
-            addSegment({
-                id: crypto.randomUUID(),
-                start: clickTime,
-                end: Math.min(clickTime + 3, duration),
-                note: '',
-                color: '#8b5cf6'
-            });
-            showToast('Segmento creado');
+            const newSeg = cutAtPosition(clickTime);
+            if (newSeg) {
+                const segNum = useProjectStore.getState().getSegmentNumber(newSeg.id);
+                showToast(`Kue #${segNum} creado`);
+            }
         });
 
         return () => {
@@ -100,13 +96,13 @@ export const Waveform = memo(() => {
 
         // Remove old regions that are no longer in segments
         currentRegions.forEach(r => {
-            if (r.id !== '__ghost_segment__' && !segments.find(s => s.id === r.id)) {
+            if (!segments.find(s => s.id === r.id)) {
                 try { r.remove(); } catch (e) { }
             }
         });
 
         // Add or Update regions
-        segments.forEach((seg) => {
+        segments.forEach((seg, index) => {
             const existing = currentRegions.find(r => r.id === seg.id);
             const hexColor = seg.color || '#8b5cf6';
             const rVal = parseInt(hexColor.slice(1, 3), 16);
@@ -126,7 +122,8 @@ export const Waveform = memo(() => {
                         end: seg.end,
                         color: rgba,
                         drag: true,
-                        resize: true
+                        resize: true,
+                        content: `#${index + 1}`, // Show Kue number
                     });
                 } catch (e) { }
             }
@@ -138,7 +135,6 @@ export const Waveform = memo(() => {
         if (!regionsPlugin.current || !isReady) return;
 
         const handleUpdate = (region: Region) => {
-            if (region.id === '__ghost_segment__') return;
             useProjectStore.getState().updateSegment(region.id, {
                 start: region.start,
                 end: region.end
@@ -149,35 +145,7 @@ export const Waveform = memo(() => {
         return () => regionsPlugin.current?.un('region-updated', handleUpdate);
     }, [isReady]);
 
-    // 5. Draw ghost segment (OPTIMIZED: only recreation when necessary)
-    useEffect(() => {
-        if (!regionsPlugin.current || !isReady) return;
-        const ghostId = '__ghost_segment__';
-        const plugin = regionsPlugin.current;
-
-        if (isRecording && activeSegmentStart !== null && currentTime > activeSegmentStart) {
-            const existing = plugin.getRegions().find(r => r.id === ghostId);
-            if (existing) {
-                try { existing.setOptions({ start: activeSegmentStart, end: currentTime }); } catch (e) { }
-            } else {
-                try {
-                    plugin.addRegion({
-                        id: ghostId,
-                        start: activeSegmentStart,
-                        end: currentTime,
-                        color: 'rgba(239, 68, 68, 0.4)',
-                        drag: false,
-                        resize: false,
-                    });
-                } catch (e) { }
-            }
-        } else {
-            const existing = plugin.getRegions().find(r => r.id === ghostId);
-            if (existing) try { existing.remove(); } catch (e) { }
-        }
-    }, [isRecording, activeSegmentStart, currentTime, isReady]);
-
-    // 6. Sync Time & Playback
+    // 5. Sync Time & Playback
     useEffect(() => {
         if (!wavesurfer.current || !isReady) return;
 
@@ -195,7 +163,7 @@ export const Waveform = memo(() => {
         }
     }, [isPlaying, currentTime, isReady]);
 
-    // 7. Pinch-to-zoom & Wheel zoom (Refactored for efficiency)
+    // 6. Pinch-to-zoom & Wheel zoom (Refactored for efficiency)
     useEffect(() => {
         if (!containerRef.current) return;
         const el = containerRef.current;
@@ -248,11 +216,11 @@ export const Waveform = memo(() => {
         <div className="w-full h-full bg-black/50 border-t border-b border-neon-purple/30 backdrop-blur-sm relative touch-none">
             <div ref={containerRef} className="w-full h-full" />
 
-            {isReady && segments.length === 0 && !isRecording && (
+            {isReady && segments.length === 0 && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="text-white/30 text-sm font-mono bg-black/50 px-4 py-2 rounded-lg text-center">
-                        <div className="hidden md:block">Alt + Rueda: Zoom • Doble-click para crear</div>
-                        <div className="md:hidden">Pellizca para zoom • Toca dos veces para crear</div>
+                        <div className="hidden md:block">Alt + Rueda: Zoom • Doble-click o KUE para cortar</div>
+                        <div className="md:hidden">Pellizca para zoom • Toca KUE para cortar</div>
                     </div>
                 </div>
             )}

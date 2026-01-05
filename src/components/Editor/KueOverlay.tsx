@@ -54,10 +54,15 @@ export const KueOverlay = memo(() => {
                             borderBottom: `2px solid ${seg.color || '#8b5cf6'}`,
                         }}
                     >
-                        {/* Label - only show if wide enough */}
-                        {widthPercent > 3 && (
-                            <span className="text-[9px] font-mono text-white truncate drop-shadow-lg">
-                                {seg.note || `${idx + 1}`}
+                        {/* Kue Number - always visible */}
+                        <span className="text-[9px] font-bold font-mono text-white bg-black/40 px-1 rounded shrink-0">
+                            #{idx + 1}
+                        </span>
+                        
+                        {/* Note - only show if wide enough and has content */}
+                        {widthPercent > 8 && seg.note && (
+                            <span className="text-[8px] font-mono text-white/70 truncate ml-1">
+                                {seg.note}
                             </span>
                         )}
 
