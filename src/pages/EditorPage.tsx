@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, ZoomIn, ZoomOut, Download, Wand2 } from 'lucide-react';
+import { ArrowLeft, Download, Wand2 } from 'lucide-react';
 import { db } from '../db';
 import { useProjectStore } from '../store/useProjectStore';
 import { useKueButton } from '../hooks/useKueButton';
@@ -36,9 +36,7 @@ export function EditorPage({ projectId, projectName, setProjectName, onBack }: E
   const segments = useProjectStore(state => state.segments);
   const bpm = useProjectStore(state => state.bpm);
   const currentTime = useProjectStore(state => state.currentTime);
-  const zoom = useProjectStore(state => state.zoom);
   const setBpm = useProjectStore(state => state.setBpm);
-  const setZoom = useProjectStore(state => state.setZoom);
   const getSegmentNumber = useProjectStore(state => state.getSegmentNumber);
 
   // KUE button hook
@@ -152,15 +150,8 @@ export function EditorPage({ projectId, projectName, setProjectName, onBack }: E
 
         {/* Waveform - TALLER for easier touch */}
         <div className="h-32 md:h-44 border-t border-neon-purple/30 bg-[#111115] relative shrink-0">
-          <div className="absolute top-1 right-2 z-10 flex gap-1 bg-black/60 p-0.5 rounded backdrop-blur border border-white/10">
-            <button onClick={() => setZoom(Math.max(5, zoom - 5))} className="p-1 hover:text-neon-purple">
-              <ZoomOut size={12} />
-            </button>
-            <button onClick={() => setZoom(Math.min(200, zoom + 5))} className="p-1 hover:text-neon-purple">
-              <ZoomIn size={12} />
-            </button>
-          </div>
-          <div className="absolute top-1 left-2 z-10 px-2 py-0.5 bg-neon-purple/20 text-neon-purple text-[10px] font-mono rounded border border-neon-purple/30">
+          {/* Kues counter - moved to not overlap */}
+          <div className="absolute bottom-1 left-2 z-10 px-2 py-0.5 bg-neon-purple/20 text-neon-purple text-[10px] font-mono rounded border border-neon-purple/30">
             {segments.length} Kues
           </div>
           <Waveform />

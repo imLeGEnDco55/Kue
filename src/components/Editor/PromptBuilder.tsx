@@ -22,10 +22,9 @@ const generatePrompt = (segment: Segment): string => {
   if (p?.subject) parts.push(p.subject);
   if (p?.action) parts.push(p.action);
   
-  // Add environment from color
-  if (segment.colorName && segment.colorName !== 'Neutral') {
-    const env = ENVIRONMENT_COLORS.find(e => e.name === segment.colorName);
-    if (env) parts.push(`in ${env.description}`);
+  // Add custom environment name if set
+  if (segment.colorName) {
+    parts.push(`in ${segment.colorName}`);
   }
   
   if (p?.lighting) parts.push(`${p.lighting} lighting`);
@@ -51,9 +50,12 @@ export const PromptBuilder = memo(({ segment, segmentNumber }: PromptBuilderProp
     const env = ENVIRONMENT_COLORS[envIndex];
     updateSegment(segment.id, {
       color: isHero ? env.hero : env.fill,
-      colorName: env.name,
       isHero
     });
+  };
+
+  const setEnvironmentName = (name: string) => {
+    updateSegment(segment.id, { colorName: name });
   };
   
   const handleCopy = async () => {
@@ -62,8 +64,6 @@ export const PromptBuilder = memo(({ segment, segmentNumber }: PromptBuilderProp
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-  
-  const currentEnvIndex = ENVIRONMENT_COLORS.findIndex(e => e.name === segment.colorName) || 0;
   
   return (
     <div className="bg-black/40 border border-white/10 rounded-lg p-4 space-y-4">
@@ -98,42 +98,56 @@ export const PromptBuilder = memo(({ segment, segmentNumber }: PromptBuilderProp
         </button>
       </div>
       
-      {/* Environment Selector */}
-      <div>
-        <label className="text-[10px] text-white/40 uppercase tracking-wider flex items-center gap-1 mb-2">
-          <Palette size={10} /> Entorno
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {ENVIRONMENT_COLORS.map((env, idx) => (
-            <div key={env.name} className="flex gap-0.5">
-              {/* Hero variant */}
-              <button
-                onClick={() => setEnvironment(idx, true)}
-                title={`${env.name} (Hero)`}
-                className={`w-6 h-6 rounded-l transition-all ${
-                  segment.colorName === env.name && segment.isHero 
-                    ? 'ring-2 ring-white scale-110' 
-                    : 'hover:scale-105'
-                }`}
-                style={{ backgroundColor: env.hero }}
-              />
-              {/* Fill variant */}
-              <button
-                onClick={() => setEnvironment(idx, false)}
-                title={`${env.name} (Fill)`}
-                className={`w-6 h-6 rounded-r transition-all ${
-                  segment.colorName === env.name && !segment.isHero 
-                    ? 'ring-2 ring-white scale-110' 
-                    : 'hover:scale-105'
-                }`}
-                style={{ backgroundColor: env.fill }}
-              />
-            </div>
-          ))}
+      {/* Environment: Colors + Custom Name */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Color Selector */}
+        <div>
+          <label className="text-[10px] text-white/40 uppercase tracking-wider flex items-center gap-1 mb-2">
+            <Palette size={10} /> Color
+          </label>
+          <div className="flex flex-wrap gap-1">
+            {ENVIRONMENT_COLORS.map((env, idx) => (
+              <div key={idx} className="flex flex-col gap-0.5">
+                {/* Hero variant */}
+                <button
+                  onClick={() => setEnvironment(idx, true)}
+                  title="Hero (brillante)"
+                  className={`w-6 h-5 rounded-t border transition-all ${
+                    segment.color === env.hero && segment.isHero 
+                      ? 'ring-2 ring-white scale-110 border-white' 
+                      : 'hover:scale-105 border-white/20'
+                  }`}
+                  style={{ backgroundColor: env.hero }}
+                />
+                {/* Fill variant */}
+                <button
+                  onClick={() => setEnvironment(idx, false)}
+                  title="Fill (apagado)"
+                  className={`w-6 h-5 rounded-b border transition-all ${
+                    segment.color === env.fill && !segment.isHero 
+                      ? 'ring-2 ring-white scale-110 border-white' 
+                      : 'hover:scale-105 border-white/20'
+                  }`}
+                  style={{ backgroundColor: env.fill }}
+                />
+              </div>
+            ))}
+          </div>
         </div>
-        <p className="text-[10px] text-white/30 mt-1">
-          {ENVIRONMENT_COLORS[currentEnvIndex]?.description || 'Selecciona un entorno'}
-        </p>
+        
+        {/* Custom Environment Name */}
+        <div>
+          <label className="text-[10px] text-white/40 uppercase tracking-wider flex items-center gap-1 mb-2">
+            <Sparkles size={10} /> Entorno (texto libre)
+          </label>
+          <input
+            type="text"
+            value={segment.colorName || ''}
+            onChange={(e) => setEnvironmentName(e.target.value)}
+            placeholder="Ej: Playa al atardecer, Club nocturno..."
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white text-sm placeholder-white/30 outline-none focus:border-neon-purple/50"
+          />
+        </div>
       </div>
       
       {/* Subject & Action - Free text */}

@@ -70,15 +70,18 @@ export const STYLE_OPTIONS = [
 const MAX_HISTORY_SIZE = 30;
 
 // Environment-based color palette with Hero (bright) and Fill (muted) variants
+// Note: Names are just for reference, user can set custom names
 export const ENVIRONMENT_COLORS = [
-  { name: "Neutral", hero: "#8b5cf6", fill: "#4c2889", description: "Default / Sin entorno específico" },
-  { name: "Pool/Water", hero: "#3b82f6", fill: "#1e3a5f", description: "Piscina, playa, agua" },
-  { name: "Sunset/Warm", hero: "#f97316", fill: "#7c3a0a", description: "Atardecer, sala cálida" },
-  { name: "Nature/Green", hero: "#22c55e", fill: "#14532d", description: "Exterior, jardín, bosque" },
-  { name: "Party/Pink", hero: "#ec4899", fill: "#831843", description: "Club, fiesta, neón" },
-  { name: "Urban/Yellow", hero: "#eab308", fill: "#713f12", description: "Ciudad, calle, taxi" },
-  { name: "Night/Dark", hero: "#6366f1", fill: "#312e81", description: "Noche, interior oscuro" },
-  { name: "Studio/White", hero: "#f8fafc", fill: "#94a3b8", description: "Estudio, fondo limpio" },
+  { hero: "#8b5cf6", fill: "#4c2889" }, // Purple/Neutral
+  { hero: "#3b82f6", fill: "#1e3a5f" }, // Blue/Water
+  { hero: "#f97316", fill: "#7c3a0a" }, // Orange/Sunset
+  { hero: "#22c55e", fill: "#14532d" }, // Green/Nature
+  { hero: "#ec4899", fill: "#831843" }, // Pink/Party
+  { hero: "#eab308", fill: "#713f12" }, // Yellow/Urban
+  { hero: "#6366f1", fill: "#312e81" }, // Indigo/Night
+  { hero: "#f8fafc", fill: "#94a3b8" }, // White/Studio
+  { hero: "#ef4444", fill: "#7f1d1d" }, // Red/Fire
+  { hero: "#06b6d4", fill: "#164e63" }, // Cyan/Teal
 ];
 
 interface ProjectState {
@@ -189,7 +192,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         end: position,
         note: "",
         color: ENVIRONMENT_COLORS[0].hero,
-        colorName: ENVIRONMENT_COLORS[0].name,
+        colorName: '',
         isHero: true,
       };
 
@@ -216,7 +219,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         end: segmentToSplit.end,
         note: "",
         color: ENVIRONMENT_COLORS[envIndex].hero,
-        colorName: ENVIRONMENT_COLORS[envIndex].name,
+        colorName: '',
         isHero: true,
       };
 
@@ -245,7 +248,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         end: position,
         note: "",
         color: ENVIRONMENT_COLORS[envIndex].hero,
-        colorName: ENVIRONMENT_COLORS[envIndex].name,
+        colorName: '',
         isHero: true,
       };
 
@@ -278,7 +281,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         end: duration,
         note: "",
         color: ENVIRONMENT_COLORS[0].hero,
-        colorName: ENVIRONMENT_COLORS[0].name,
+        colorName: '',
         isHero: true,
       };
 
@@ -305,7 +308,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       end: duration,
       note: "",
       color: ENVIRONMENT_COLORS[envIndex].hero,
-      colorName: ENVIRONMENT_COLORS[envIndex].name,
+      colorName: '',
       isHero: true,
     };
 
@@ -423,7 +426,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         end: end,
         note: "",
         color: ENVIRONMENT_COLORS[envIndex].hero,
-        colorName: ENVIRONMENT_COLORS[envIndex].name,
+        colorName: '',
         isHero: true,
       });
 

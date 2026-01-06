@@ -303,16 +303,20 @@ export const Waveform = memo(() => {
         document.addEventListener('touchend', handleEnd);
     };
 
-    // Handle color change
+    // Handle color change - no auto-name, just color
     const handleColorChange = (segId: string, colorIdx: number, isHero: boolean) => {
         const env = ENVIRONMENT_COLORS[colorIdx];
         updateSegment(segId, {
             color: isHero ? env.hero : env.fill,
-            colorName: env.name,
             isHero: isHero,
         });
         setShowColorPicker(null);
-        showToast(`Color: ${env.name} (${isHero ? 'Hero' : 'Fill'})`);
+        showToast(isHero ? 'Color Hero \u2713' : 'Color Fill \u2713');
+    };
+
+    // Handle custom color name
+    const handleColorNameChange = (segId: string, name: string) => {
+        updateSegment(segId, { colorName: name });
     };
 
     // Handle image upload - Force 16:9 aspect ratio
@@ -487,31 +491,43 @@ export const Waveform = memo(() => {
                                     </span>
                                 )}
 
-                                {/* COLOR PICKER POPUP */}
+                                {/* COLOR PICKER POPUP - high z-index, positioned above */}
                                 {showColorPicker === seg.id && (
                                     <div 
-                                        className="color-picker absolute top-full left-0 mt-1 bg-black/95 border border-white/20 rounded-lg p-2 z-50 shadow-xl"
+                                        className="color-picker absolute bottom-full left-0 mb-2 bg-black/95 border border-white/30 rounded-xl p-3 shadow-2xl"
+                                        style={{ zIndex: 9999 }}
                                         onClick={(e) => e.stopPropagation()}
                                     >
-                                        <div className="text-[9px] text-white/50 mb-1 uppercase">Entorno</div>
-                                        <div className="grid grid-cols-4 gap-1">
+                                        {/* Custom name input */}
+                                        <div className="mb-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Nombre entorno..."
+                                                value={seg.colorName || ''}
+                                                onChange={(e) => handleColorNameChange(seg.id, e.target.value)}
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="w-full px-2 py-1 text-xs bg-white/10 border border-white/20 rounded text-white placeholder-white/40 outline-none focus:border-neon-purple"
+                                            />
+                                        </div>
+                                        {/* Color grid - 5 cols for 10 colors */}
+                                        <div className="grid grid-cols-5 gap-1">
                                             {ENVIRONMENT_COLORS.map((env, i) => (
-                                                <div key={env.name} className="flex flex-col gap-0.5">
+                                                <div key={i} className="flex flex-col gap-0.5">
                                                     {/* Hero variant */}
                                                     <button
                                                         onClick={() => handleColorChange(seg.id, i, true)}
-                                                        className="w-6 h-6 rounded-t border border-white/20 hover:scale-110 transition-transform flex items-center justify-center"
+                                                        className="w-7 h-6 rounded-t border border-white/30 hover:scale-110 transition-transform flex items-center justify-center"
                                                         style={{ backgroundColor: env.hero }}
-                                                        title={`${env.name} (Hero)`}
+                                                        title="Hero (brillante)"
                                                     >
-                                                        <Star size={8} className="text-white/70" />
+                                                        <Star size={10} className="text-white/80" />
                                                     </button>
                                                     {/* Fill variant */}
                                                     <button
                                                         onClick={() => handleColorChange(seg.id, i, false)}
-                                                        className="w-6 h-6 rounded-b border border-white/20 hover:scale-110 transition-transform"
+                                                        className="w-7 h-6 rounded-b border border-white/30 hover:scale-110 transition-transform"
                                                         style={{ backgroundColor: env.fill }}
-                                                        title={`${env.name} (Fill)`}
+                                                        title="Fill (apagado)"
                                                     />
                                                 </div>
                                             ))}
