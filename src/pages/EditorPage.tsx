@@ -8,7 +8,6 @@ import { useKueButton } from '../hooks/useKueButton';
 import { VideoMonitor } from '../components/Player/VideoMonitor';
 import { StoryboardPlayer } from '../components/Player/StoryboardPlayer';
 import { Waveform } from '../components/Timeline/Waveform';
-import { KueOverlay } from '../components/Editor/KueOverlay';
 import { SegmentList } from '../components/Editor/SegmentList';
 import { ControlBar } from '../components/Editor/ControlBar';
 import { KueInfoBar } from '../components/Editor/KueInfoBar';
@@ -150,8 +149,8 @@ export function EditorPage({ projectId, projectName, setProjectName, onBack }: E
           />
         )}
 
-        {/* Waveform */}
-        <div className="h-24 md:h-32 border-t border-neon-purple/30 bg-[#111115] relative shrink-0">
+        {/* Waveform - TALLER for easier touch */}
+        <div className="h-32 md:h-44 border-t border-neon-purple/30 bg-[#111115] relative shrink-0">
           <div className="absolute top-1 right-2 z-10 flex gap-1 bg-black/60 p-0.5 rounded backdrop-blur border border-white/10">
             <button onClick={() => setZoom(Math.max(5, zoom - 5))} className="p-1 hover:text-neon-purple">
               <ZoomOut size={12} />
@@ -164,7 +163,6 @@ export function EditorPage({ projectId, projectName, setProjectName, onBack }: E
             {segments.length} Kues
           </div>
           <Waveform />
-          <KueOverlay />
         </div>
 
         {/* Expanded Segment List */}
