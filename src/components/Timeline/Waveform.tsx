@@ -315,20 +315,45 @@ export const Waveform = memo(() => {
         showToast(`Color: ${env.name} (${isHero ? 'Hero' : 'Fill'})`);
     };
 
-    // Handle image upload
+    // Handle image upload - Force 16:9 aspect ratio
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || !uploadingFor) return;
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const dataUrl = event.target?.result as string;
+        const img = new Image();
+        img.onload = () => {
+            // Create canvas with 16:9 aspect ratio
+            const canvas = document.createElement('canvas');
+            const targetWidth = 640;
+            const targetHeight = 360; // 16:9
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            const ctx = canvas.getContext('2d')!;
+
+            // Calculate crop to center the image in 16:9
+            const imgRatio = img.width / img.height;
+            const targetRatio = 16 / 9;
+            let sx = 0, sy = 0, sWidth = img.width, sHeight = img.height;
+
+            if (imgRatio > targetRatio) {
+                // Image is wider, crop sides
+                sWidth = img.height * targetRatio;
+                sx = (img.width - sWidth) / 2;
+            } else {
+                // Image is taller, crop top/bottom
+                sHeight = img.width / targetRatio;
+                sy = (img.height - sHeight) / 2;
+            }
+
+            ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, targetWidth, targetHeight);
+
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
             updateSegment(uploadingFor, { thumbnail: dataUrl });
-            showToast('Imagen cargada');
+            showToast('Imagen 16:9 ✓');
             setUploadingFor(null);
         };
-        reader.readAsDataURL(file);
-        e.target.value = ''; // Reset input
+        img.src = URL.createObjectURL(file);
+        e.target.value = '';
     };
 
     const triggerImageUpload = (segId: string) => {
@@ -412,7 +437,7 @@ export const Waveform = memo(() => {
                             >
                                 {/* Thumbnail overlay gradient */}
                                 {seg.thumbnail && (
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent rounded-lg" />
+                                    <div className="absolute inset-0 bg-linear-to-t from-black/70 to-transparent rounded-lg" />
                                 )}
 
                                 {/* Top bar: Number + Hero/Fill indicator */}
@@ -552,7 +577,7 @@ export const Waveform = memo(() => {
                         style={{ left: `${currentTime * zoom}px` }}
                     >
                         {/* Playhead triangle - BIGGER */}
-                        <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[10px] border-t-white drop-shadow-lg" />
+                        <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-10 border-t-white drop-shadow-lg" />
                     </div>
                 </div>
             </div>

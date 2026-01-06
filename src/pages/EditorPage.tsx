@@ -58,8 +58,9 @@ export function EditorPage({ projectId, projectName, setProjectName, onBack }: E
   const currentKue = segments.find(s => currentTime >= s.start && currentTime < s.end);
   const currentKueNumber = currentKue ? getSegmentNumber(currentKue.id) : null;
 
+
   return (
-    <div className="h-screen bg-neon-dark text-cyber-text flex flex-col overflow-hidden font-sans">
+    <div className="h-screen bg-neon-dark text-cyber-text flex flex-col overflow-hidden font-sans fixed inset-0 touch-pan-x overscroll-none">
       {/* Header */}
       <header className="h-14 border-b border-neon-purple/20 flex items-center px-4 bg-black/60 backdrop-blur justify-between shrink-0 z-20">
         <div className="flex items-center gap-4">
