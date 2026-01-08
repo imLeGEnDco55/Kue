@@ -491,10 +491,10 @@ export const Waveform = memo(() => {
                                     </span>
                                 )}
 
-                                {/* COLOR PICKER POPUP - high z-index, positioned above */}
+                                {/* COLOR PICKER POPUP - positioned BELOW to avoid overflow clipping */}
                                 {showColorPicker === seg.id && (
                                     <div 
-                                        className="color-picker absolute bottom-full left-0 mb-2 bg-black/95 border border-white/30 rounded-xl p-3 shadow-2xl"
+                                        className="color-picker absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-black/95 border border-white/30 rounded-xl p-3 shadow-2xl backdrop-blur-sm"
                                         style={{ zIndex: 9999 }}
                                         onClick={(e) => e.stopPropagation()}
                                     >

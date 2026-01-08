@@ -122,11 +122,11 @@ export function EditorPage({ projectId, projectName, setProjectName, onBack }: E
         {/* Storyboard Player */}
         <div className="flex-1 flex items-center justify-center p-2 md:p-4 bg-black overflow-hidden min-h-0">
           <div className="w-full max-w-4xl aspect-video shadow-2xl bg-black border border-neon-purple/30 rounded-lg overflow-hidden relative group">
-            {/* Time Overlay - Top Right */}
-            <div className="absolute top-2 right-2 z-20 px-2 py-1 bg-black/70 backdrop-blur-sm rounded font-mono text-xs md:text-sm text-white/90 border border-white/10">
+            {/* Time Overlay - Top Right - More visible on mobile */}
+            <div className="absolute top-2 right-2 z-20 px-3 py-1.5 bg-black/80 backdrop-blur-sm rounded-lg font-mono text-sm md:text-base text-white border border-white/20 shadow-lg">
               <span className="text-white font-bold">{formatTime(currentTime)}</span>
-              <span className="text-white/50 mx-1">/</span>
-              <span className="text-white/60">{formatTime(duration)}</span>
+              <span className="text-white/40 mx-1">/</span>
+              <span className="text-white/50">{formatTime(duration)}</span>
             </div>
             
             <StoryboardPlayer />
