@@ -1,8 +1,9 @@
-import { useRef } from 'react';
-import { Plus, Trash2, Calendar, Music } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Plus, Trash2, Calendar, Music, Package } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { Toast } from '../components/UI/Toast';
+import { ImportModal } from '../components/UI/ImportModal';
 import type { Project } from '../types';
 
 interface HomePageProps {
@@ -12,6 +13,7 @@ interface HomePageProps {
 
 export function HomePage({ onOpenProject, onCreateProject }: HomePageProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
   const projects = useLiveQuery(() => db.projects.orderBy('createdAt').reverse().toArray());
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,15 +103,35 @@ export function HomePage({ onOpenProject, onCreateProject }: HomePageProps) {
         accept="video/*,audio/*"
       />
 
-      <button
-        onClick={() => fileInputRef.current?.click()}
-        className="group relative px-8 py-4 bg-neon-purple text-black font-bold rounded-full text-lg tracking-wider hover:scale-105 transition-all shadow-[0_0_20px_rgba(139,92,246,0.5)]"
-      >
-        <div className="flex items-center gap-3">
-          <Plus size={24} strokeWidth={3} />
-          NUEVO PROYECTO
-        </div>
-      </button>
+      {/* Action Buttons */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="group relative px-8 py-4 bg-neon-purple text-black font-bold rounded-full text-lg tracking-wider hover:scale-105 transition-all shadow-[0_0_20px_rgba(139,92,246,0.5)]"
+        >
+          <div className="flex items-center gap-3">
+            <Plus size={24} strokeWidth={3} />
+            NUEVO PROYECTO
+          </div>
+        </button>
+
+        <button
+          onClick={() => setShowImportModal(true)}
+          className="group relative px-8 py-4 bg-green-500 text-black font-bold rounded-full text-lg tracking-wider hover:scale-105 transition-all shadow-[0_0_20px_rgba(34,197,94,0.5)]"
+        >
+          <div className="flex items-center gap-3">
+            <Package size={24} strokeWidth={2} />
+            CARGAR .KUE
+          </div>
+        </button>
+      </div>
+
+      {/* Import Modal */}
+      <ImportModal 
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImportSuccess={(project) => onOpenProject(project)}
+      />
 
       <Toast />
     </div>

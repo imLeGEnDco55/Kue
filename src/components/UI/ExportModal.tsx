@@ -1,7 +1,8 @@
-import { X, FileJson, FileSpreadsheet, Film, Copy, Check, AlertTriangle } from 'lucide-react';
+import { X, FileJson, FileSpreadsheet, Film, Copy, Check, AlertTriangle, Package, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { useProjectStore } from '../../store/useProjectStore';
 import { formatTime } from '../../utils/audioAnalysis';
+import { exportProject } from '../../utils/projectPackager';
 
 interface ExportModalProps {
     isOpen: boolean;
@@ -16,7 +17,9 @@ const MAX_AI_SHOT_DURATION = 8;
 export const ExportModal = ({ isOpen, onClose, projectName, projectId }: ExportModalProps) => {
     const { segments, bpm } = useProjectStore();
     const [copied, setCopied] = useState(false);
-    const [activeTab, setActiveTab] = useState<'json' | 'csv' | 'script'>('script');
+    const [activeTab, setActiveTab] = useState<'project' | 'json' | 'csv' | 'script'>('script');
+    const [isExporting, setIsExporting] = useState(false);
+    const [exportError, setExportError] = useState<string | null>(null);
 
     if (!isOpen) return null;
 
@@ -145,20 +148,54 @@ export const ExportModal = ({ isOpen, onClose, projectName, projectId }: ExportM
             case 'json': return generateJSON();
             case 'csv': return generateCSV();
             case 'script': return generateAIScript();
+            case 'project': return `📦 Proyecto: ${projectName}\n\n` +
+                `Este archivo .kue contiene:\n` +
+                `• Audio/Video original\n` +
+                `• ${segments.length} Kues con toda su información\n` +
+                `• ${segments.filter(s => s.thumbnail).length} imágenes en alta calidad (1280x720)\n` +
+                `• Metadata (BPM: ${bpm || 'N/A'})\n\n` +
+                `El archivo .kue es un ZIP que puedes abrir\n` +
+                `con cualquier programa de descompresión\n` +
+                `para extraer las imágenes si lo necesitas.`;
+        }
+    };
+
+    // Download project as .kue
+    const downloadKueFile = async () => {
+        setIsExporting(true);
+        setExportError(null);
+        try {
+            const blob = await exportProject(projectId);
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `${projectName}.kue`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        } catch (error) {
+            console.error('Error exporting project:', error);
+            setExportError('Error al exportar el proyecto');
+        } finally {
+            setIsExporting(false);
         }
     };
 
     // Download file
     const downloadFile = () => {
+        if (activeTab === 'project') {
+            downloadKueFile();
+            return;
+        }
+        
         const content = getContent();
-        const extensions = { json: 'json', csv: 'csv', script: 'txt' };
+        const extensions = { json: 'json', csv: 'csv', script: 'txt', project: 'kue' };
         const mimeTypes = {
             json: 'application/json',
             csv: 'text/csv',
-            script: 'text/plain'
+            script: 'text/plain',
+            project: 'application/zip'
         };
 
-        const blob = new Blob([content], { type: mimeTypes[activeTab] });
+        const blob = new Blob([content || ''], { type: mimeTypes[activeTab] });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = `${projectName}_${activeTab}.${extensions[activeTab]}`;
@@ -190,7 +227,17 @@ export const ExportModal = ({ isOpen, onClose, projectName, projectId }: ExportM
                 </div>
 
                 {/* Tabs */}
-                <div className="flex border-b border-white/10">
+                <div className="flex border-b border-white/10 overflow-x-auto">
+                    <button
+                        onClick={() => setActiveTab('project')}
+                        className={`flex-1 p-3 flex items-center justify-center gap-2 transition-colors min-w-fit ${activeTab === 'project'
+                            ? 'bg-green-500/20 text-green-400 border-b-2 border-green-400'
+                            : 'text-white/60 hover:text-white hover:bg-white/5'
+                            }`}
+                    >
+                        <Package size={18} />
+                        <span className="font-medium whitespace-nowrap">.kue</span>
+                    </button>
                     <button
                         onClick={() => setActiveTab('script')}
                         className={`flex-1 p-3 flex items-center justify-center gap-2 transition-colors ${activeTab === 'script'
@@ -209,7 +256,7 @@ export const ExportModal = ({ isOpen, onClose, projectName, projectId }: ExportM
                             }`}
                     >
                         <FileJson size={18} />
-                        <span className="font-medium">Backup JSON</span>
+                        <span className="font-medium hidden sm:inline">JSON</span>
                     </button>
                     <button
                         onClick={() => setActiveTab('csv')}
@@ -219,7 +266,7 @@ export const ExportModal = ({ isOpen, onClose, projectName, projectId }: ExportM
                             }`}
                     >
                         <FileSpreadsheet size={18} />
-                        <span className="font-medium">CSV</span>
+                        <span className="font-medium hidden sm:inline">CSV</span>
                     </button>
                 </div>
 
@@ -238,22 +285,50 @@ export const ExportModal = ({ isOpen, onClose, projectName, projectId }: ExportM
                     </div>
                 )}
 
+                {/* Error message */}
+                {exportError && (
+                    <div className="mx-4 mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-3 text-red-400">
+                        <AlertTriangle size={20} />
+                        <span className="text-sm">{exportError}</span>
+                    </div>
+                )}
+
                 {/* Actions */}
                 <div className="flex gap-3 p-4 border-t border-white/10">
-                    <button
-                        onClick={copyToClipboard}
-                        className="flex-1 p-3 bg-white/5 hover:bg-white/10 rounded-xl flex items-center justify-center gap-2 text-white transition-colors"
-                    >
-                        {copied ? <Check size={18} className="text-green-400" /> : <Copy size={18} />}
-                        {copied ? 'Copiado!' : 'Copiar'}
-                    </button>
+                    {activeTab !== 'project' && (
+                        <button
+                            onClick={copyToClipboard}
+                            className="flex-1 p-3 bg-white/5 hover:bg-white/10 rounded-xl flex items-center justify-center gap-2 text-white transition-colors"
+                        >
+                            {copied ? <Check size={18} className="text-green-400" /> : <Copy size={18} />}
+                            {copied ? 'Copiado!' : 'Copiar'}
+                        </button>
+                    )}
                     <button
                         onClick={downloadFile}
-                        disabled={segments.length === 0}
-                        className="flex-1 p-3 bg-neon-purple hover:bg-neon-purple/80 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl flex items-center justify-center gap-2 text-black font-bold transition-colors"
+                        disabled={isExporting || (activeTab !== 'project' && segments.length === 0)}
+                        className={`flex-1 p-3 rounded-xl flex items-center justify-center gap-2 font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                            activeTab === 'project' 
+                                ? 'bg-green-500 hover:bg-green-600 text-black' 
+                                : 'bg-neon-purple hover:bg-neon-purple/80 text-black'
+                        }`}
                     >
-                        <Film size={18} />
-                        Descargar
+                        {isExporting ? (
+                            <>
+                                <Loader2 size={18} className="animate-spin" />
+                                Empaquetando...
+                            </>
+                        ) : activeTab === 'project' ? (
+                            <>
+                                <Package size={18} />
+                                Descargar .kue
+                            </>
+                        ) : (
+                            <>
+                                <Film size={18} />
+                                Descargar
+                            </>
+                        )}
                     </button>
                 </div>
             </div>

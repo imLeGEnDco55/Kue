@@ -1,23 +1,8 @@
 import Dexie, { type Table } from 'dexie';
+import type { Project } from './types';
 
-// Definimos qué forma tienen nuestros datos
-export interface Segment {
-    id: string;
-    start: number;
-    end: number;
-    note: string;
-    color?: string;
-}
-
-export interface Project {
-    id: string;
-    name: string;
-    createdAt: number;
-    updatedAt: number;
-    audioBlob: Blob; // ¡Aquí guardamos el video/audio real!
-    bpm: number;
-    segments: Segment[];
-}
+// Re-export types for convenience
+export type { Project, Segment } from './types';
 
 // Creamos la clase de la Base de Datos
 export class KueDatabase extends Dexie {
