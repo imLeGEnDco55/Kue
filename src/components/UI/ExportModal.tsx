@@ -226,47 +226,47 @@ export const ExportModal = ({ isOpen, onClose, projectName, projectId }: ExportM
                     </button>
                 </div>
 
-                {/* Tabs */}
-                <div className="flex border-b border-white/10 overflow-x-auto">
+                {/* Tabs - Icons only for mobile consistency */}
+                <div className="flex border-b border-white/10">
                     <button
                         onClick={() => setActiveTab('project')}
-                        className={`flex-1 p-3 flex items-center justify-center gap-2 transition-colors min-w-fit ${activeTab === 'project'
+                        className={`flex-1 p-3 flex items-center justify-center transition-colors ${activeTab === 'project'
                             ? 'bg-green-500/20 text-green-400 border-b-2 border-green-400'
                             : 'text-white/60 hover:text-white hover:bg-white/5'
                             }`}
+                        title="Proyecto .kue"
                     >
-                        <Package size={18} />
-                        <span className="font-medium whitespace-nowrap">.kue</span>
+                        <Package size={20} />
                     </button>
                     <button
                         onClick={() => setActiveTab('script')}
-                        className={`flex-1 p-3 flex items-center justify-center gap-2 transition-colors ${activeTab === 'script'
+                        className={`flex-1 p-3 flex items-center justify-center transition-colors ${activeTab === 'script'
                             ? 'bg-neon-purple/20 text-neon-purple border-b-2 border-neon-purple'
                             : 'text-white/60 hover:text-white hover:bg-white/5'
                             }`}
+                        title="Guión de IA"
                     >
-                        <Film size={18} />
-                        <span className="font-medium">Guión</span>
+                        <Film size={20} />
                     </button>
                     <button
                         onClick={() => setActiveTab('json')}
-                        className={`flex-1 p-3 flex items-center justify-center gap-2 transition-colors ${activeTab === 'json'
+                        className={`flex-1 p-3 flex items-center justify-center transition-colors ${activeTab === 'json'
                             ? 'bg-neon-purple/20 text-neon-purple border-b-2 border-neon-purple'
                             : 'text-white/60 hover:text-white hover:bg-white/5'
                             }`}
+                        title="Backup JSON"
                     >
-                        <FileJson size={18} />
-                        <span className="font-medium hidden sm:inline">JSON</span>
+                        <FileJson size={20} />
                     </button>
                     <button
                         onClick={() => setActiveTab('csv')}
-                        className={`flex-1 p-3 flex items-center justify-center gap-2 transition-colors ${activeTab === 'csv'
+                        className={`flex-1 p-3 flex items-center justify-center transition-colors ${activeTab === 'csv'
                             ? 'bg-neon-purple/20 text-neon-purple border-b-2 border-neon-purple'
                             : 'text-white/60 hover:text-white hover:bg-white/5'
                             }`}
+                        title="Exportar CSV"
                     >
-                        <FileSpreadsheet size={18} />
-                        <span className="font-medium hidden sm:inline">CSV</span>
+                        <FileSpreadsheet size={20} />
                     </button>
                 </div>
 

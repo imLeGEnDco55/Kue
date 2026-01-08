@@ -3,7 +3,6 @@ import {
   Play, Pause, Square, Undo2, Scissors, FileText, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { useProjectStore } from '../../store/useProjectStore';
-import { formatTime } from '../../utils/audioAnalysis';
 import { useKueButton } from '../../hooks/useKueButton';
 
 interface ControlBarProps {
@@ -21,7 +20,6 @@ export const ControlBar = memo(({
 }: ControlBarProps) => {
   const isPlaying = useProjectStore(state => state.isPlaying);
   const currentTime = useProjectStore(state => state.currentTime);
-  const duration = useProjectStore(state => state.duration);
   const segments = useProjectStore(state => state.segments);
   const setIsPlaying = useProjectStore(state => state.setIsPlaying);
   const setCurrentTime = useProjectStore(state => state.setCurrentTime);
@@ -118,13 +116,7 @@ export const ControlBar = memo(({
   };
 
   return (
-    <div className="h-16 border-t border-white/10 bg-black/80 flex items-center justify-center gap-3 md:gap-6 shrink-0 px-3">
-      {/* Time Display */}
-      <div className="font-mono text-xs md:text-sm text-white/60">
-        <span className="text-white font-bold">{formatTime(currentTime)}</span>
-        <span className="mx-1 hidden md:inline">/</span>
-        <span className="hidden md:inline">{formatTime(duration)}</span>
-      </div>
+    <div className="h-14 border-t border-white/10 bg-black/80 flex items-center justify-center gap-3 md:gap-4 shrink-0 px-3">
 
       {/* Play/Pause */}
       <button
